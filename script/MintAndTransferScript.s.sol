@@ -54,13 +54,13 @@ contract MintAndTransferScript is Script {
         // Start broadcasting without passing a private key directly.
         // Foundry will use the key provided via the command line.
         vm.startBroadcast();
-        
+
         // Mint tokens to deployer
         token.mint(deployerAddr, mintAmount);
-        
+
         // Transfer all tokens to destination
         token.transfer(destination, mintAmount);
-        
+
         vm.stopBroadcast();
     }
 }

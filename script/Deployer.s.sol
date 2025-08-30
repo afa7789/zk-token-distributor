@@ -11,7 +11,6 @@ contract Deployer is Script {
     using stdJson for string;
 
     function run() external {
-
         vm.startBroadcast();
 
         // Try to read SMT results from file, fallback to hardcoded values
