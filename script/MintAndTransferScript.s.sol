@@ -2,16 +2,22 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import {Deployer} from "./Deployer.s.sol";
 import {ZKAirDroppedToken} from "../src/ProjectToken.sol";
 import {ZKTokenDistributor} from "../src/ZKTokenDistributor.sol";
 
 contract MintAndTransferScript is Script {
     function run() external {
-        // Load deployer contract
-        Deployer deployer = new Deployer();
-        ZKAirDroppedToken token = deployer.token();
-        ZKTokenDistributor distributor = deployer.distributor();
+        // Read deployment addresses from broadcast file
+        string memory deploymentFile = "./broadcast/Deployer.s.sol/31337/run-latest.json";
+        string memory json = vm.readFile(deploymentFile);
+        
+        // Parse contract addresses from deployment
+        address tokenAddress = vm.parseJsonAddress(json, ".transactions[0].contractAddress");
+        address distributorAddress = vm.parseJsonAddress(json, ".transactions[2].contractAddress");
+        
+        // Initialize contracts with deployed addresses
+        ZKAirDroppedToken token = ZKAirDroppedToken(tokenAddress);
+        ZKTokenDistributor distributor = ZKTokenDistributor(distributorAddress);
 
         // Get private key from env
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");

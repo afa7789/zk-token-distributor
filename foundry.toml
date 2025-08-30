@@ -13,5 +13,7 @@ remappings = [
 # Enable filesystem access for reading/writing files
 fs_permissions = [
     { access = "read", path = "./data" },
+    { access = "read", path = "./broadcast" },
+    { access = "read", path = "./out" },
     { access = "write", path = "./out" }
 ]

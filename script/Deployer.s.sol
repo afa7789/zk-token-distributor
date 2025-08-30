@@ -7,7 +7,7 @@ import {VerifierZK} from "../src/VerifierZK.sol";
 import {ZKTokenDistributor} from "../src/ZKTokenDistributor.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract DeployerScript is Script {
+contract Deployer is Script {
     function run() external {
         vm.startBroadcast();
 

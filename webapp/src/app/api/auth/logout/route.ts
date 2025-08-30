@@ -2,13 +2,30 @@ import { NextResponse } from 'next/server';
 
 export async function POST() {
   try {
-    // In a real app, you'd invalidate the session/token
-    // For demo purposes, we'll just return success
-
-    return NextResponse.json({
+    // Create response
+    const response = NextResponse.json({
       success: true,
       message: 'Logged out successfully',
     });
+
+    // Clear the session cookies
+    response.cookies.set('session-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0, // Expire immediately
+      path: '/',
+    });
+
+    response.cookies.set('session-address', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0, // Expire immediately
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Logout failed:', error);
     return NextResponse.json(

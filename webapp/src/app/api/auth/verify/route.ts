@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
       // For demo purposes, we'll use the signature as a token
       const token = signature;
 
-      return NextResponse.json({
+      // Create response with cookie
+      const response = NextResponse.json({
         success: true,
         data: {
           token,
@@ -34,6 +35,26 @@ export async function POST(request: NextRequest) {
           expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
         },
       });
+
+      // Set secure session cookie
+      response.cookies.set('session-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60, // 24 hours in seconds
+        path: '/',
+      });
+
+      // Also set the address cookie for easier access
+      response.cookies.set('session-address', siweMessage.address, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60, // 24 hours in seconds
+        path: '/',
+      });
+
+      return response;
     } else {
       return NextResponse.json(
         {
