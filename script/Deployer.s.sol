@@ -11,37 +11,24 @@ contract Deployer is Script {
     using stdJson for string;
 
     function run() external {
-        // No longer reading private key from environment variable
-        // Foundry will automatically handle this via the --private-key flag.
-        // address deployer = vm.addr(vm.envUint("PRIVATE_KEY")); // This line is for demonstration purposes    
-        // It's not strictly needed for vm.startBroadcast() but useful if you need the deployer's address elsewhere.
 
-        // Start broadcasting without passing a private key directly.
-        // The script will use the key provided via the command line flag.
         vm.startBroadcast();
 
         // Try to read SMT results from file, fallback to hardcoded values
         uint256 smtRootUint;
         uint256 totalAmount;
 
-        // Try multiple file paths
-        string[] memory filePaths = new string[](4);
-        filePaths[0] = "../out/smt_results.json";
-        filePaths[1] = "out/smt_results.json";
-        filePaths[2] = "./out/smt_results.json";
-        filePaths[3] = "/Users/afa/Developer/study/erc55_core/hackaton/out/smt_results.json";
-
+        // Try to read SMT results from a single file path
         bool fileRead = false;
-        for (uint256 i = 0; i < filePaths.length && !fileRead; i++) {
-            try vm.readFile(filePaths[i]) returns (string memory json) {
-                // Extract SMT root and total amount from file
-                smtRootUint = json.readUint(".smtRoot");
-                totalAmount = json.readUint(".totalAmount");
-                console.log("Successfully read SMT data from:", filePaths[i]);
-                fileRead = true;
-            } catch {
-                console.log("Failed to read from:", filePaths[i]);
-            }
+        string memory filePath = "out/smt_results.json";
+        try vm.readFile(filePath) returns (string memory json) {
+            // Extract SMT root and total amount from file
+            smtRootUint = json.readUint(".smtRoot");
+            totalAmount = json.readUint(".totalAmount");
+            console.log("Successfully read SMT data from:", filePath);
+            fileRead = true;
+        } catch {
+            console.log("Failed to read from:", filePath);
         }
 
         if (!fileRead) {
@@ -61,6 +48,8 @@ contract Deployer is Script {
         // Deploy Verifier first
         VerifierZK verifier = new VerifierZK();
         console.log("VerifierZK deployed at:", address(verifier));
+
+        console.log("Deployer address:", msg.sender);
 
         // Deploy Token with proper constructor parameters
         ZKAirDroppedToken token = new ZKAirDroppedToken(
