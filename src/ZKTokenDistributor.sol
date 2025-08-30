@@ -12,7 +12,7 @@ import {IZKTokenDistributor} from "./interfaces/IZKTokenDistributor.sol";
 
 /**
  * @title ZKTokenDistributor
- *   @notice Distributes ERC20 tokens via Merkle proofs 
+ *   @notice Distributes ERC20 tokens via Merkle proofs
  *   during a specified claim period
  */
 contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
@@ -62,7 +62,7 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
      * @param _root Merkle root for claims
      * @param _token ERC20 token address
      * @param _verifier ZK Verifier contract address
-     * @param _totalClaimable Total tokens to distribute 
+     * @param _totalClaimable Total tokens to distribute
      * @param _claimPeriodStart Distribution start timestamp
      * @param _claimPeriodEnd Distribution end timestamp
      */
@@ -97,16 +97,16 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
     /**
      * @notice Claims tokens using ZK proof
      * @param _pA Groth16 proof point A
-     * @param _pB Groth16 proof point B  
+     * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals (should include nullifierHash)
      * @param _amount Amount to claim
      */
     function claim(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[1] calldata _pubSignals,
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[1] calldata _pubSignals,
         uint256 _amount
     ) external {
         _claim(_pA, _pB, _pC, _pubSignals, _amount);
@@ -120,7 +120,7 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
     function sweep(address _sweepReceiver) external override {
         // Check admin role using AccessControl
         if (!hasRole(ADMIN_ROLE, msg.sender)) revert AccessControlUnauthorizedAccount(msg.sender, ADMIN_ROLE);
-        
+
         // Must be after claim period
         if (block.timestamp <= claimPeriodEnd) revert TokenDistributor_ClaimPeriodNotEnded();
 
@@ -137,7 +137,7 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
     }
 
     /**
-     * @notice Withdraws tokens during claim period 
+     * @notice Withdraws tokens during claim period
      * @dev Only admin role
      * @param _to Receiver of tokens
      * @param _amount Tokens to withdraw
@@ -145,7 +145,7 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
     function withdraw(address _to, uint256 _amount) external override {
         // Check admin role using AccessControl
         if (!hasRole(ADMIN_ROLE, msg.sender)) revert AccessControlUnauthorizedAccount(msg.sender, ADMIN_ROLE);
-        
+
         if (_to == address(0)) revert InvalidAddress();
         if (_amount == 0) revert InvalidAmount();
 
@@ -161,8 +161,10 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
      */
     function grantAdminRole(address _account) external {
         // Check default admin role using AccessControl
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) revert AccessControlUnauthorizedAccount(msg.sender, DEFAULT_ADMIN_ROLE);
-        
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+            revert AccessControlUnauthorizedAccount(msg.sender, DEFAULT_ADMIN_ROLE);
+        }
+
         if (_account == address(0)) revert InvalidAddress();
         _grantRole(ADMIN_ROLE, _account);
     }
@@ -174,29 +176,31 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
      */
     function revokeAdminRole(address _account) external {
         // Check default admin role using AccessControl
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) revert AccessControlUnauthorizedAccount(msg.sender, DEFAULT_ADMIN_ROLE);
-        
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+            revert AccessControlUnauthorizedAccount(msg.sender, DEFAULT_ADMIN_ROLE);
+        }
+
         _revokeRole(ADMIN_ROLE, _account);
     }
 
     /**
      * @notice Internal claim logic
      * @param _pA Groth16 proof point A
-     * @param _pB Groth16 proof point B  
+     * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals (should include nullifierHash)
      * @param _amount Amount to claim
      */
     function _claim(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[1] calldata _pubSignals,
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[1] calldata _pubSignals,
         uint256 _amount
     ) internal {
         // Extract nullifier hash from public signals
         bytes32 nullifierHash = bytes32(_pubSignals[0]);
-        
+
         // Validate claim with ZK proof
         _validateClaim(_pA, _pB, _pC, _pubSignals, _amount);
 
@@ -223,16 +227,16 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
     /**
      * @notice Internal claim validation using ZK proof
      * @param _pA Groth16 proof point A
-     * @param _pB Groth16 proof point B  
+     * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals (should include nullifierHash)
      * @param _amount Claim amount
      */
     function _validateClaim(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[1] calldata _pubSignals,
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[1] calldata _pubSignals,
         uint256 _amount
     ) internal view {
         // Extract nullifier hash from public signals
@@ -247,19 +251,19 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
         if (!_zkProofVerified(_pA, _pB, _pC, _pubSignals)) revert TokenDistributor_FailedZKProofVerify();
     }
 
-        /**
+    /**
      * @notice Verifies a ZK proof using the VerifierZK contract
      * @param _pA Groth16 proof point A
-     * @param _pB Groth16 proof point B  
+     * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals for the proof
      * @return _valid Validity of proof
      */
     function _zkProofVerified(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[1] calldata _pubSignals
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[1] calldata _pubSignals
     ) internal view returns (bool _valid) {
         return verifier.verifyProof(_pA, _pB, _pC, _pubSignals);
     }

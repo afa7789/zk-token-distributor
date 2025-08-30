@@ -18,16 +18,16 @@ contract Deployer is Script {
         // Try to read SMT results from file, fallback to hardcoded values
         uint256 smtRootUint;
         uint256 totalAmount;
-        
+
         // Try multiple file paths
         string[] memory filePaths = new string[](4);
         filePaths[0] = "../out/smt_results.json";
         filePaths[1] = "out/smt_results.json";
         filePaths[2] = "./out/smt_results.json";
         filePaths[3] = "/Users/afa/Developer/study/erc55_core/hackaton/out/smt_results.json";
-        
+
         bool fileRead = false;
-        for (uint i = 0; i < filePaths.length && !fileRead; i++) {
+        for (uint256 i = 0; i < filePaths.length && !fileRead; i++) {
             try vm.readFile(filePaths[i]) returns (string memory json) {
                 // Extract SMT root and total amount from file
                 smtRootUint = json.readUint(".smtRoot");
@@ -38,17 +38,17 @@ contract Deployer is Script {
                 console.log("Failed to read from:", filePaths[i]);
             }
         }
-        
+
         if (!fileRead) {
             // Fallback to hardcoded values if all file reads fail
             smtRootUint = 16666497923320249555914241076237687966975321983021180127675531303796012127065;
             totalAmount = 540000000000000000000000; // 540,000 tokens
             console.log("Using hardcoded SMT data (all file reads failed)");
         }
-        
+
         // Convert SMT root from uint256 to bytes32
         bytes32 merkleRoot = bytes32(smtRootUint);
-        
+
         console.log("SMT Root (uint256):", smtRootUint);
         console.log("SMT Root (bytes32):", vm.toString(merkleRoot));
         console.log("Total Claimable Amount:", totalAmount);
@@ -60,19 +60,19 @@ contract Deployer is Script {
         // Deploy Token with proper constructor parameters
         ZKAirDroppedToken token = new ZKAirDroppedToken(
             "ZK Airdrop Token",
-            "ZKAT", 
+            "ZKAT",
             deployer // deployer as initial owner
         );
         console.log("ZKAirDroppedToken deployed at:", address(token));
-        
+
         // Deploy Distributor with all required parameters
         ZKTokenDistributor distributor = new ZKTokenDistributor(
-            merkleRoot,                    // _root
-            IERC20(address(token)),       // _token  
-            address(verifier),            // _verifier
-            totalAmount,                  // _totalClaimable
-            block.timestamp + 1,          // _claimPeriodStart (starts in 1 second)
-            block.timestamp + 30 days     // _claimPeriodEnd (30 days from now)
+            merkleRoot, // _root
+            IERC20(address(token)), // _token
+            address(verifier), // _verifier
+            totalAmount, // _totalClaimable
+            block.timestamp + 1, // _claimPeriodStart (starts in 1 second)
+            block.timestamp + 30 days // _claimPeriodEnd (30 days from now)
         );
         console.log("ZKTokenDistributor deployed at:", address(distributor));
 

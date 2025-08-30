@@ -24,29 +24,29 @@ interface IZKTokenDistributor {
 
     // Core functions
     function claim(
-        uint[2] calldata _pA,
-        uint[2][2] calldata _pB,
-        uint[2] calldata _pC,
-        uint[1] calldata _pubSignals,
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[1] calldata _pubSignals,
         uint256 _amount
     ) external;
-    
+
     function sweep(address _sweepReceiver) external;
-    
+
     function withdraw(address _to, uint256 _amount) external;
 
     // Admin functions
     function grantAdminRole(address _account) external;
-    
+
     function revokeAdminRole(address _account) external;
 
     // View functions for state variables
     function root() external view returns (bytes32);
-    
+
     function totalClaimable() external view returns (uint256);
-    
+
     function claimPeriodStart() external view returns (uint256);
-    
+
     function claimPeriodEnd() external view returns (uint256);
 
     function usedNullifiers(bytes32 nullifierHash) external view returns (bool);

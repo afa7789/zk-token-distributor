@@ -10,11 +10,11 @@ contract MintAndTransferScript is Script {
         // Read deployment addresses from broadcast file
         string memory deploymentFile = "./broadcast/Deployer.s.sol/31337/run-latest.json";
         string memory json = vm.readFile(deploymentFile);
-        
+
         // Parse contract addresses from deployment
         address tokenAddress = vm.parseJsonAddress(json, ".transactions[0].contractAddress");
         address distributorAddress = vm.parseJsonAddress(json, ".transactions[2].contractAddress");
-        
+
         // Initialize contracts with deployed addresses
         ZKAirDroppedToken token = ZKAirDroppedToken(tokenAddress);
         ZKTokenDistributor distributor = ZKTokenDistributor(distributorAddress);
@@ -23,7 +23,7 @@ contract MintAndTransferScript is Script {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployerAddr = vm.addr(deployerKey);
 
-                // Get amount from CLI or SMT JSON
+        // Get amount from CLI or SMT JSON
         uint256 mintAmount;
         try vm.envString("MINT_AMOUNT") returns (string memory amountStr) {
             if (bytes(amountStr).length > 0) {

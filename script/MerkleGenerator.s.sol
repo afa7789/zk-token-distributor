@@ -1,7 +1,8 @@
 // import "forge-std/Script.sol";
-import "poseidon-solidity/PoseidonT2.sol"; // Use T2 for two-input hashes  
+import "poseidon-solidity/PoseidonT2.sol"; // Use T2 for two-input hashes
 import "poseidon-solidity/PoseidonT3.sol"; // Use T3 for two-input nullifier hash
 import "poseidon-solidity/PoseidonT4.sol"; // Use T4 for three-input hashes (leaf and node)X-License-Identifier: MIT
+
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
@@ -85,19 +86,11 @@ contract SMTGeneratorScript is Script {
 
             // Calculate nullifier hash using PoseidonT3 (matches your circuit)
             // The circuit uses Poseidon(2) - only userAddress and nullifier
-            bytes32 nullifierHash = bytes32(PoseidonT3.hash([
-                uint256(uint160(leafData[i].account)),
-                nullifier
-            ]));
+            bytes32 nullifierHash = bytes32(PoseidonT3.hash([uint256(uint160(leafData[i].account)), nullifier]));
             nullifierHashes[i] = nullifierHash;
 
             // Verify the SMT proof
-            bool isValid = verifyInclusionProof(
-                leafData[i].account,
-                leafData[i].amount,
-                proof,
-                root
-            );
+            bool isValid = verifyInclusionProof(leafData[i].account, leafData[i].amount, proof, root);
 
             // Only show first 3 proofs to avoid log spam
             if (i < 3) {
@@ -131,18 +124,11 @@ contract SMTGeneratorScript is Script {
         for (uint256 i = 0; i < testAddresses.length; i++) {
             bytes32[] memory nonInclusionProof = generateNonInclusionProof(testAddresses[i]);
 
-            bool isNonIncluded = verifyNonInclusionProof(
-                testAddresses[i],
-                nonInclusionProof,
-                root
-            );
+            bool isNonIncluded = verifyNonInclusionProof(testAddresses[i], nonInclusionProof, root);
 
             console.log(
                 string.concat(
-                    "Non-inclusion proof for ",
-                    vm.toString(testAddresses[i]),
-                    " is valid: ",
-                    vm.toString(isNonIncluded)
+                    "Non-inclusion proof for ", vm.toString(testAddresses[i]), " is valid: ", vm.toString(isNonIncluded)
                 )
             );
         }
@@ -174,12 +160,10 @@ contract SMTGeneratorScript is Script {
     /**
      * @dev Recursive function to insert into SMT
      */
-    function insertRecursive(
-        bytes32 nodeHash,
-        uint256 key,
-        bytes32 leafHash,
-        uint256 level
-    ) internal returns (bytes32) {
+    function insertRecursive(bytes32 nodeHash, uint256 key, bytes32 leafHash, uint256 level)
+        internal
+        returns (bytes32)
+    {
         if (level == 0) {
             // We're at a leaf level
             return leafHash;
@@ -252,12 +236,11 @@ contract SMTGeneratorScript is Script {
     /**
      * @dev Verify inclusion proof
      */
-    function verifyInclusionProof(
-        address key,
-        uint256 value,
-        bytes32[] memory proof,
-        bytes32 expectedRoot
-    ) internal pure returns (bool) {
+    function verifyInclusionProof(address key, uint256 value, bytes32[] memory proof, bytes32 expectedRoot)
+        internal
+        pure
+        returns (bool)
+    {
         uint256 keyUint = uint256(uint160(key));
         bytes32 computedHash = calculateLeafHash(keyUint, value);
 
@@ -278,11 +261,11 @@ contract SMTGeneratorScript is Script {
     /**
      * @dev Verify non-inclusion proof (simplified)
      */
-    function verifyNonInclusionProof(
-        address key,
-        bytes32[] memory proof,
-        bytes32 expectedRoot
-    ) internal pure returns (bool) {
+    function verifyNonInclusionProof(address key, bytes32[] memory proof, bytes32 expectedRoot)
+        internal
+        pure
+        returns (bool)
+    {
         uint256 keyUint = uint256(uint160(key));
         bytes32 computedHash = EMPTY_NODE_HASH; // Start with empty leaf
 
@@ -423,7 +406,7 @@ contract SMTGeneratorScript is Script {
         json = string.concat(json, '",\n  "treeLevels": ');
         json = string.concat(json, vm.toString(TREE_LEVELS));
         json = string.concat(json, ',\n  "hashFunction": "Poseidon",\n  "treeType": "Sparse Merkle Tree",');
-        json = string.concat(json, '\n  "totalAmount": ', vm.toString(totalAmount), ',');
+        json = string.concat(json, '\n  "totalAmount": ', vm.toString(totalAmount), ",");
         json = string.concat(json, '\n  "leaves": [\n');
 
         for (uint256 i = 0; i < leafData.length; i++) {
@@ -462,12 +445,14 @@ contract SMTGeneratorScript is Script {
         bytes32[] memory nullifierHashes
     ) internal {
         string memory json = "[\n";
-        
+
         for (uint256 i = 0; i < leafData.length; i++) {
             json = string.concat(json, "    {\n");
             json = string.concat(json, '      "merkleRoot": "', vm.toString(uint256(smtRoot)), '",\n');
             json = string.concat(json, '      "nullifierHash": "', vm.toString(uint256(nullifierHashes[i])), '",\n');
-            json = string.concat(json, '      "userAddress": "', vm.toString(uint256(uint160(leafData[i].account))), '",\n');
+            json = string.concat(
+                json, '      "userAddress": "', vm.toString(uint256(uint160(leafData[i].account))), '",\n'
+            );
             json = string.concat(json, '      "amount": "', vm.toString(leafData[i].amount), '",\n');
             json = string.concat(json, '      "nullifier": "', vm.toString(nullifiers[i]), '",\n');
             json = string.concat(json, '      "siblings": [');

@@ -89,4 +89,3 @@ contract ProjectTokenTest is Test {
         token.transferOwnership(user1);
     }
 }
-
