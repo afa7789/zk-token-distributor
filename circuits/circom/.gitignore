@@ -1,0 +1,8 @@
+node_modules/
+airdrop_smt_js/
+
+airdrop_smt.r1cs
+airdrop_smt.sym
+
+powersOfTau28_hez_final_15.ptau
+output/
