@@ -1,26 +1,97 @@
+
 @import "tailwindcss";
 
+/*
+  Global dark theme: prefer the darker about-page look across the app.
+  - Increase base font-size for readability
+  - Use neutral dark surfaces for elements that previously rendered as white boxes
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #070707;        /* page background */
+  --foreground: #e9eef1;       /* main text */
+  --surface: #0f0f12;          /* card/button background */
+  --muted: #2a2a2d;            /* borders / muted surfaces */
+  --accent: #ff7a2d;           /* small accent (kept for avatars/badges) */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
+/* Make dark theme the default for the demo (still respects prefers-color-scheme if browser uses light) */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 18px;      /* increased base font size for readability */
+  line-height: 1.6;
 }
+
+/* Headings slightly larger and clearer */
+h1 { font-size: 2.25rem; margin-bottom: 0.5rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.25rem; }
+
+/* Reduce flashy decorations: remove shadows but keep subtle separation via muted surfaces */
+.shadow, .shadow-sm, .shadow-lg, .shadow-md { box-shadow: none !important; }
+
+/* Map commonly-used 'light' utility classes to dark surfaces so UI elements look cohesive */
+.bg-white, .bg-gray-50, .bg-blue-50, .bg-red-50, .bg-yellow-50, .bg-green-50 { background: var(--surface) !important; }
+
+/* Make accent text readable on dark backgrounds */
+.text-white, .text-gray-900 { color: var(--foreground) !important; }
+
+/* Borders use muted dark color */
+.border, .border-2, .border-t, .border-b, .border-l, .border-r { border-color: var(--muted) !important; }
+
+/* Neutralize bright color classes to muted grays, but allow small accent (like avatar dot) to keep contrast */
+.text-blue-600, .text-blue-700, .text-red-600, .text-green-600 { color: var(--foreground) !important; }
+
+/* Inputs/buttons: dark surface with light text */
+input, textarea, button, select {
+  border-radius: 4px !important;
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--muted) !important;
+}
+
+/* ConnectKit / wallet button tweaks: prefer dark surface and compact padding so it aligns in header */
+/* Common ConnectKit class names touched: connectkit, ck-button, ck-connect-button, ck-avatar */
+.connectkit, .ck-button, .ck-connect-button, .connectkit-button {
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--muted) !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+/* Ensure avatar badge (orange dot) shows within dark surface without white outline */
+.ck-avatar, .ck-avatar img, .ck-avatar svg { background: transparent !important; }
+
+/* Sign-in button: make it look like a subtle dark button (used by Sign In on about/home) */
+.siwe-signin, button.sign-in, .sign-in-button {
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--muted) !important;
+  padding: 10px 16px !important;
+  border-radius: 6px !important;
+}
+
+/* Subtle loading spinner color
+   (some implementations style the spinner using border color, so force a visible border) */
+.animate-spin { border-color: var(--foreground) !important; }
+
+/* Utility: a neutral button class users can apply */
+.btn-neutral { background: var(--surface); color: var(--foreground); border: 1px solid var(--muted); }
+
+/* Small helpers to keep layout readable on dark background */
+.card { background: var(--surface); border: 1px solid var(--muted); padding: 1rem; }
+
+/*
+  Target styled-components generated classes (they often start with `sc-`) used by ConnectKit
+  and other UI libs. Remove outer borders/outlines and neutralize backgrounds so the connector
+  fits the dark header. This is intentionally specific to elements with generated "sc-" classes.
+*/
+
+

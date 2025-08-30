@@ -1,6 +1,9 @@
 import type { ContractAddresses } from '@/types/api';
-import fs from 'fs';
-import path from 'path';
+
+// Note: `fs` and `path` are Node-only modules. We avoid importing them at
+// module top-level so this file can be imported from client components.
+// Functions that need filesystem access dynamically import `fs`/`path` at runtime
+// (server-side).
 
 // Default addresses for localhost/development
 const DEFAULT_ADDRESSES: ContractAddresses = {
@@ -21,8 +24,11 @@ interface BroadcastData {
 
 export async function loadContractAddresses(chainId: number = 31337): Promise<ContractAddresses> {
   try {
-    // For localhost (31337), try to load from broadcast files
-    if (chainId === 31337) {
+    // For localhost (31337), try to load from broadcast files (server only)
+    if (chainId === 31337 && typeof window === 'undefined') {
+      const fs = await import('fs');
+      const path = await import('path');
+
       const broadcastPath = path.join(
         process.cwd(),
         '../broadcast/Deployer.s.sol/31337/run-latest.json'
@@ -60,7 +66,7 @@ export async function loadContractAddresses(chainId: number = 31337): Promise<Co
       }
     }
 
-    // For other networks, use environment variables or defaults
+    // For other networks or when broadcast file is not available, use environment variables or defaults
     return {
       verifier: process.env.NEXT_PUBLIC_VERIFIER_ADDRESS || DEFAULT_ADDRESSES.verifier,
       token: process.env.NEXT_PUBLIC_TOKEN_ADDRESS || DEFAULT_ADDRESSES.token,

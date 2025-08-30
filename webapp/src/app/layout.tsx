@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { WagmiConfig } from "wagmi";
-import { ConnectKitProvider } from "connectkit";
-import { config } from "@/lib/wagmi";
-import { ContractsProvider } from "@/components/ContractsProvider";
+import ClientProviders from '@/components/ClientProviders';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,13 +28,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <WagmiConfig config={config}>
-          <ConnectKitProvider>
-            <ContractsProvider>
-              {children}
-            </ContractsProvider>
-          </ConnectKitProvider>
-        </WagmiConfig>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAccount, useSignMessage } from 'wagmi';
 import { useAuthStore } from '@/store/authStore';
 import { useState } from 'react';
-import { ConnectKitButton } from 'connectkit';
+import StyledConnectKitButton from '@/components/StyledConnectKitButton';
 import { SiweMessage } from 'siwe';
 import { useRouter } from 'next/navigation';
 
@@ -111,7 +111,7 @@ export default function Auth() {
               >
                 Home
               </Link>
-              <ConnectKitButton />
+              <StyledConnectKitButton />
             </div>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function Auth() {
                 <p className="text-gray-600 mb-6">
                   First, connect your Ethereum wallet to continue
                 </p>
-                <ConnectKitButton />
+                <StyledConnectKitButton />
               </div>
             ) : (
               <div className="text-center">
