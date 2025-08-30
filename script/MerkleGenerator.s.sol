@@ -412,11 +412,19 @@ contract SMTGeneratorScript is Script {
         uint256[] memory nullifiers,
         bytes32[] memory nullifierHashes
     ) internal {
+        // Calculate total amount
+        uint256 totalAmount = 0;
+        for (uint256 i = 0; i < leafData.length; i++) {
+            totalAmount += leafData[i].amount;
+        }
+
         string memory json = '{\n  "smtRoot": "';
         json = string.concat(json, vm.toString(uint256(smtRoot)));
         json = string.concat(json, '",\n  "treeLevels": ');
         json = string.concat(json, vm.toString(TREE_LEVELS));
-        json = string.concat(json, ',\n  "hashFunction": "Poseidon",\n  "treeType": "Sparse Merkle Tree",\n  "leaves": [\n');
+        json = string.concat(json, ',\n  "hashFunction": "Poseidon",\n  "treeType": "Sparse Merkle Tree",');
+        json = string.concat(json, '\n  "totalAmount": ', vm.toString(totalAmount), ',');
+        json = string.concat(json, '\n  "leaves": [\n');
 
         for (uint256 i = 0; i < leafData.length; i++) {
             uint256 keyUint = uint256(uint160(leafData[i].account));
