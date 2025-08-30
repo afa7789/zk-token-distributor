@@ -10,15 +10,12 @@ export default function StyledConnectKitButton(props: CKButtonProps) {
     <div className="ck-button-wrapper">
       <ConnectKitButton {...props} />
       <style jsx>{`
-        .ck-button-wrapper :global(.connectkit),
-        .ck-button-wrapper :global(.ck-button),
-        .ck-button-wrapper :global(.ck-connect-button),
-        .ck-button-wrapper :global(.connectkit-button) {
-          background: var(--surface) !important;
-          color: var(--foreground) !important;
-          border: 1px solid var(--muted) !important;
-          padding: 6px 10px !important;
-          border-radius: 6px !important;
+        /* ONLY remove the outermost visual border/outline/shadow from the ConnectKit button
+           Leave internal styling (background, padding, avatar, etc.) untouched. */
+        .ck-button-wrapper :global(.connectkit-button),
+        .ck-button-wrapper :global(.ck-connect-button) {
+          border: none !important;
+          outline: none !important;
           box-shadow: none !important;
         }
 

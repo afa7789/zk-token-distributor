@@ -2,6 +2,7 @@ import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
 import { useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import SIWEUtils from '@/lib/siwe';
+import { SiweMessage } from 'siwe';
 
 export const useAuth = () => {
   const { address, isConnected } = useAccount();
@@ -23,33 +24,38 @@ export const useAuth = () => {
     }
 
     try {
-      // Generate nonce
-      const nonce = SIWEUtils.generateNonce();
+      // Get nonce from server
+      const nonceResp = await fetch('/api/auth/nonce');
+      if (!nonceResp.ok) throw new Error('Failed to fetch nonce');
+      const { data } = await nonceResp.json();
+      const nonce = data?.nonce;
 
-      // Create SIWE message
-      const message = SIWEUtils.createMessage(
+      // Create SIWE message object and prepared string
+      const message = new SiweMessage({
+        domain: window.location.host,
         address,
-        1, // mainnet
-        nonce
-      );
-
-      // Sign the message
-      const signature = await signMessageAsync({
-        message: message.prepareMessage(),
+        statement: 'Sign in to ZK Token Distributor',
+        uri: window.location.origin,
+        version: '1',
+        chainId: 31337,
+        nonce,
+        issuedAt: new Date().toISOString(),
       });
 
-      // Verify the signature
-      const verification = await SIWEUtils.verifyMessage(message, signature);
+      const messageString = message.prepareMessage();
+
+      // Sign the message string
+      const signature = await signMessageAsync({ message: messageString });
+
+      // Verify the signature via server
+      const verification = await SIWEUtils.verifyMessage(messageString, signature);
 
       if (verification.success) {
-        // Store authentication state
         connectStore(address);
-        setAuthenticated(signature); // Using signature as token for demo
-
+        setAuthenticated(signature);
         return { success: true, token: signature };
-      } else {
-        throw new Error('SIWE verification failed');
       }
+      throw new Error('SIWE verification failed');
     } catch (error) {
       console.error('Sign in failed:', error);
       throw error;

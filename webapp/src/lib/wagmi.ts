@@ -1,11 +1,10 @@
 import { createConfig, http } from "wagmi";
-import { mainnet, sepolia, foundry } from "wagmi/chains";
+import { foundry } from "wagmi/chains";
 
+// Configure Wagmi to only use the local Foundry/Anvil chain (31337)
 export const config = createConfig({
-  chains: [foundry, mainnet, sepolia],
+  chains: [foundry],
   transports: {
     [foundry.id]: http("http://127.0.0.1:8545"),
-    [mainnet.id]: http("https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"),
-    [sepolia.id]: http("https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY"),
   },
 });

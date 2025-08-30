@@ -26,7 +26,7 @@ export class SIWEUtils {
     nonce: string,
     domain: string = window.location.host,
     uri: string = window.location.origin
-  ): SiweMessage {
+  ): string {
     const message = new SiweMessage({
       domain,
       address,
@@ -38,27 +38,32 @@ export class SIWEUtils {
       issuedAt: new Date().toISOString(),
     });
 
-    return message;
+    return message.prepareMessage();
   }
 
   static async signMessage(
-    message: SiweMessage,
+    messageString: string,
     signer: { signMessage: (message: string) => Promise<string> }
   ): Promise<string> {
-    const messageString = message.prepareMessage();
     const signature = await signer.signMessage(messageString);
     return signature;
   }
 
   static async verifyMessage(
-    message: SiweMessage,
+    messageString: string,
     signature: string
-  ): Promise<{ success: boolean; data?: SiweMessage }> {
+  ): Promise<{ success: boolean; data?: SiweMessage | undefined }> {
     try {
-      const result = await message.verify({ signature });
-      return { success: result.success, data: result.data };
+      const resp = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: messageString, signature }),
+      });
+
+      const json = await resp.json();
+      return json;
     } catch (error) {
-      console.error('SIWE verification failed:', error);
+      console.error('SIWE verification failed (client):', error);
       return { success: false };
     }
   }
