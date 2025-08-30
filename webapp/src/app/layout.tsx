@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { WagmiConfig } from "wagmi";
 import { ConnectKitProvider } from "connectkit";
 import { config } from "@/lib/wagmi";
+import { ContractsProvider } from "@/components/ContractsProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,7 +33,9 @@ export default function RootLayout({
       >
         <WagmiConfig config={config}>
           <ConnectKitProvider>
-            {children}
+            <ContractsProvider>
+              {children}
+            </ContractsProvider>
           </ConnectKitProvider>
         </WagmiConfig>
       </body>
