@@ -1,6 +1,7 @@
 "use client";
 
 import StyledConnectKitButton from "@/components/StyledConnectKitButton";
+import NetworkSwitcher from "@/components/NetworkSwitcher";
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +23,9 @@ export default function Home() {
       </header>
 
       <main className="max-w-4xl mx-auto">
+        <div className="mb-4">
+          <NetworkSwitcher />
+        </div>
         <section className="mb-6">
           <h2 className="text-2xl font-medium">Welcome</h2>
           <p className="text-sm text-gray-700">Private token distribution demo — sign in to see your calldata.</p>
