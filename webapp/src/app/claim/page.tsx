@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { ConnectKitButton } from 'connectkit';
 import { useClaimTokens } from '@/hooks/useClaimTokens';
 import { formatEther } from 'viem';
+import { zkProofGenerator, ZKProofInputs } from '@/lib/zkProofGenerator';
 
 interface UserData {
   merkleRoot: string;
@@ -24,6 +25,7 @@ export default function Claim() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [isGeneratingProof, setIsGeneratingProof] = useState(false);
   const { submitClaim, isSubmitting, error: claimError } = useClaimTokens();
 
   // Load user data from inputs_circom.json
@@ -72,22 +74,38 @@ export default function Claim() {
   const handleClaim = async () => {
     if (!userClaimData) return;
 
+    setIsGeneratingProof(true);
+    
     try {
-      // For now, we need to generate the ZK proof
-      // This is a simplified version - in production you'd generate actual ZK proofs
-      const claimData = {
-        proof: {
-          a: ["0", "0"] as [string, string],
-          b: [["0", "0"], ["0", "0"]] as [[string, string], [string, string]],
-          c: ["0", "0"] as [string, string]
-        },
-        publicSignals: [userClaimData.nullifierHash] as [string],
-        amount: userClaimData.amount
-      };
+      console.log('Generating ZK proof for claim...');
       
-      await submitClaim(claimData);
+      // Prepare inputs for ZK proof generation
+      const zkInputs: ZKProofInputs = {
+        merkleRoot: userClaimData.merkleRoot,
+        nullifierHash: userClaimData.nullifierHash,
+        userAddress: userClaimData.userAddress,
+        amount: userClaimData.amount,
+        nullifier: userClaimData.nullifier,
+        siblings: userClaimData.siblings
+      };
+
+      // Generate ZK proof using circom
+      const proofData = await zkProofGenerator.generateProof(zkInputs);
+      
+      console.log('ZK proof generated successfully:', proofData);
+      
+      // Submit claim with real ZK proof
+      await submitClaim({
+        proof: proofData.proof,
+        publicSignals: proofData.publicSignals,
+        amount: userClaimData.amount
+      });
+      
     } catch (err) {
       console.error('Claim failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate proof or claim tokens');
+    } finally {
+      setIsGeneratingProof(false);
     }
   };
 
@@ -247,14 +265,19 @@ export default function Claim() {
               <div className="text-center">
                 <button
                   onClick={handleClaim}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isGeneratingProof}
                   className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white ${
-                    isSubmitting
+                    isSubmitting || isGeneratingProof
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700'
                   }`}
                 >
-                  {isSubmitting ? (
+                  {isGeneratingProof ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Generating Proof...
+                    </>
+                  ) : isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Claiming...
@@ -268,6 +291,12 @@ export default function Claim() {
                     Error: {claimError}
                   </p>
                 )}
+                
+                {/* ZK Proof Generation Info */}
+                <div className="mt-4 text-xs text-gray-500">
+                  <p>🔒 Zero-Knowledge proof will be generated locally in your browser</p>
+                  <p>Your private data never leaves your device</p>
+                </div>
               </div>
             </>
           )}

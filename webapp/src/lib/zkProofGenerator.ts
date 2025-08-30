@@ -1,0 +1,118 @@
+import * as snarkjs from 'snarkjs';
+
+export interface ZKProofInputs {
+  merkleRoot: string;
+  nullifierHash: string;
+  userAddress: string;
+  amount: string;
+  nullifier: string;
+  siblings: string[];
+}
+
+export interface ZKProof {
+  a: [string, string];
+  b: [[string, string], [string, string]];
+  c: [string, string];
+}
+
+export interface ZKProofData {
+  proof: ZKProof;
+  publicSignals: [string];
+}
+
+// Ensure proper field element format for circom
+function formatFieldElement(value: string): string {
+  return BigInt(value).toString();
+}
+
+export class ZKProofGenerator {
+  private wasmUrl: string;
+  private zkeyUrl: string;
+  private verificationKeyUrl: string;
+
+  constructor() {
+    this.wasmUrl = '/circom/airdrop_smt.wasm';
+    this.zkeyUrl = '/circom/airdrop_smt_01.zkey';
+    this.verificationKeyUrl = '/circom/verification_key.json';
+  }
+
+  async generateProof(inputs: ZKProofInputs): Promise<ZKProofData> {
+    try {
+      // Prepare circuit inputs in the format expected by circom
+      const circuitInputs = {
+        root: formatFieldElement(inputs.merkleRoot),
+        nullifierHash: formatFieldElement(inputs.nullifierHash),
+        userAddress: formatFieldElement(inputs.userAddress),
+        amount: formatFieldElement(inputs.amount),
+        nullifier: formatFieldElement(inputs.nullifier),
+        siblings: inputs.siblings.map(formatFieldElement),
+      };
+
+      console.log('Generating ZK proof with inputs:', circuitInputs);
+
+      // Generate the proof using snarkjs
+      const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+        circuitInputs,
+        this.wasmUrl,
+        this.zkeyUrl
+      );
+
+      console.log('Generated proof:', proof);
+      console.log('Public signals:', publicSignals);
+
+      // Format proof for Solidity verifier
+      const formattedProof: ZKProof = {
+        a: [proof.pi_a[0], proof.pi_a[1]],
+        b: [[proof.pi_b[0][1], proof.pi_b[0][0]], [proof.pi_b[1][1], proof.pi_b[1][0]]],
+        c: [proof.pi_c[0], proof.pi_c[1]]
+      };
+
+      return {
+        proof: formattedProof,
+        publicSignals: [publicSignals[0]] as [string]
+      };
+    } catch (error) {
+      console.error('ZK proof generation failed:', error);
+      throw new Error(`Failed to generate ZK proof: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async verifyProof(proofData: ZKProofData, publicSignals: string[]): Promise<boolean> {
+    try {
+      // Load verification key
+      const vKeyResponse = await fetch(this.verificationKeyUrl);
+      const vKey = await vKeyResponse.json();
+
+      // Format proof for verification
+      const proof = {
+        protocol: "groth16",
+        curve: "bn128",
+        pi_a: [proofData.proof.a[0], proofData.proof.a[1], "1"],
+        pi_b: [[proofData.proof.b[0][1], proofData.proof.b[0][0]], [proofData.proof.b[1][1], proofData.proof.b[1][0]], ["1", "0"]],
+        pi_c: [proofData.proof.c[0], proofData.proof.c[1], "1"]
+      };
+
+      const result = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+      console.log('Proof verification result:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('ZK proof verification failed:', error);
+      return false;
+    }
+  }
+
+  // Helper method to create proof inputs from user data
+  static createInputsFromUserData(userData: ZKProofInputs): ZKProofInputs {
+    return {
+      merkleRoot: userData.merkleRoot,
+      nullifierHash: userData.nullifierHash,
+      userAddress: userData.userAddress,
+      amount: userData.amount,
+      nullifier: userData.nullifier,
+      siblings: userData.siblings
+    };
+  }
+}
+
+export const zkProofGenerator = new ZKProofGenerator();

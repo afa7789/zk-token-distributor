@@ -35,6 +35,18 @@ export default function Home() {
               >
                 About
               </Link>
+              <Link
+                href="/calldata"
+                className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Calldata
+              </Link>
+              <Link
+                href="/claim"
+                className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Claim
+              </Link>
               <ConnectKitButton />
             </div>
           </div>
@@ -124,10 +136,27 @@ export default function Home() {
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
                   <div>
                     <h4 className="text-sm font-medium text-gray-900">
+                      Download Calldata
+                    </h4>
+                    <p className="text-sm text-gray-500">
+                      Download your personal claim data file
+                    </p>
+                  </div>
+                  <Link 
+                    href="/calldata"
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Download
+                  </Link>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">
                       Generate Calldata
                     </h4>
                     <p className="text-sm text-gray-500">
-                      Generate proof data for token claiming
+                      Generate proof data for token claiming (Legacy)
                     </p>
                   </div>
                   <button 

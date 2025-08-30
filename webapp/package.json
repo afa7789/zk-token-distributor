@@ -15,6 +15,7 @@
     "react-dom": "19.1.0",
     "react-dropzone": "^14.3.8",
     "siwe": "^3.0.0",
+    "snarkjs": "^0.7.5",
     "viem": "^2.36.0",
     "wagmi": "^2.16.9",
     "zustand": "^5.0.8"
@@ -26,6 +27,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/snarkjs": "^0.7.9",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "tailwindcss": "^4",
