@@ -65,7 +65,7 @@ contract Deployer is Script {
             IERC20(address(token)), // _token
             address(verifier), // _verifier
             totalAmount, // _totalClaimable
-            block.timestamp + 1, // _claimPeriodStart (starts in 1 second)
+            block.timestamp + 1 minutes, // _claimPeriodStart (starts in 1 second)
             block.timestamp + 30 days // _claimPeriodEnd (30 days from now)
         );
         console.log("ZKTokenDistributor deployed at:", address(distributor));
