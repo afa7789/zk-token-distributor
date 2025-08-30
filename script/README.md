@@ -1,3 +1,44 @@
+# Deployer & MintAndTransferScript Usage
+
+## Deployer
+
+Deploys ProjectToken, ZKVerifier, and ZKTokenDistributor contracts in one go.
+
+### How to Deploy
+
+1. Run the deployer script with Foundry:
+  ```sh
+  forge script script/Deployer.s.sol --broadcast --rpc-url <YOUR_RPC_URL>
+  ```
+  This will deploy all contracts and print their addresses.
+
+## MintAndTransferScript
+
+Mints tokens and transfers them to the deployed distributor contract.
+
+### How to Use with Wallets
+
+- Set your wallet's private key in the environment variable `PRIVATE_KEY`.
+- Optionally, set `MINT_AMOUNT` to mint a specific amount. If not set, the script will read the total from `out/smt_results.json`.
+
+#### Example Usage
+
+```sh
+export PRIVATE_KEY=<your_private_key>
+# Optionally set amount:
+export MINT_AMOUNT=1000000
+forge script script/MintAndTransferScript.s.sol --broadcast --rpc-url <YOUR_RPC_URL>
+```
+
+If `MINT_AMOUNT` is not set, the script will mint the total amount found in `out/smt_results.json`.
+
+### What Happens
+- Mints tokens to your wallet.
+- Transfers all minted tokens to the deployed distributor contract.
+
+---
+
+For more details, see the comments in each script.
 # How to use the MerkleTree Generator
 # Merkle Tree Generator with CSV Reading
 
