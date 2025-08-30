@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
-import "../src/ProjectToken.sol"; // This contains ZKAirDroppedToken
+import "../src/ProjectToken.sol";
 import "../src/VerifierZK.sol";
 import "../src/ZKTokenDistributor.sol";
 
@@ -11,9 +11,14 @@ contract Deployer is Script {
     using stdJson for string;
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address deployer = vm.addr(deployerPrivateKey);
-        vm.startBroadcast(deployerPrivateKey);
+        // No longer reading private key from environment variable
+        // Foundry will automatically handle this via the --private-key flag.
+        // address deployer = vm.addr(vm.envUint("PRIVATE_KEY")); // This line is for demonstration purposes    
+        // It's not strictly needed for vm.startBroadcast() but useful if you need the deployer's address elsewhere.
+
+        // Start broadcasting without passing a private key directly.
+        // The script will use the key provided via the command line flag.
+        vm.startBroadcast();
 
         // Try to read SMT results from file, fallback to hardcoded values
         uint256 smtRootUint;
@@ -61,7 +66,7 @@ contract Deployer is Script {
         ZKAirDroppedToken token = new ZKAirDroppedToken(
             "ZK Airdrop Token",
             "ZKAT",
-            deployer // deployer as initial owner
+            msg.sender // Using msg.sender as the deployer
         );
         console.log("ZKAirDroppedToken deployed at:", address(token));
 

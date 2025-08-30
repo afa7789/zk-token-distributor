@@ -41,19 +41,20 @@ If you rely on the provided Foundry scripts for Merkle/proof generation, Foundry
 
 2. Deploy using the repository script
 
+    - If you want to run a local deployment against Anvil:
+
+    ```bash
+    anvil --silent &
+    # use Anvil's default RPC (http://127.0.0.1:8545) and one of the displayed private keys
+    ```
+
     - Example deploy (assumes `script/Deployer.s.sol` exposes a `Deployer` script contract). Replace the placeholders with your RPC URL and private key. Use `--broadcast` to submit transactions.
 
     ```bash
     forge script script/Deployer.s.sol:Deployer --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast -vvvv
     ```
 
-    - If you want to run a local deployment against Anvil:
 
-    ```bash
-    anvil --silent &
-    # use Anvil's default RPC (http://127.0.0.1:8545) and one of the displayed private keys
-    forge script script/Deployer.s.sol:Deployer --rpc-url http://127.0.0.1:8545 --private-key <ANVIL_KEY> --broadcast
-    ```
 
 ## 3. Run the web application
 

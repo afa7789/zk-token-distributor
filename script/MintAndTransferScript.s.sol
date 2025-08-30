@@ -19,9 +19,9 @@ contract MintAndTransferScript is Script {
         ZKAirDroppedToken token = ZKAirDroppedToken(tokenAddress);
         ZKTokenDistributor distributor = ZKTokenDistributor(distributorAddress);
 
-        // Get private key from env
-        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
-        address deployerAddr = vm.addr(deployerKey);
+        // Get the deployer's address from the context.
+        // vm.addr(vm.envUint("PRIVATE_KEY")) still works but is better used for context.
+        address deployerAddr = vm.addr(vm.envUint("PRIVATE_KEY"));
 
         // Get amount from CLI or SMT JSON
         uint256 mintAmount;
@@ -29,13 +29,13 @@ contract MintAndTransferScript is Script {
             if (bytes(amountStr).length > 0) {
                 mintAmount = vm.parseUint(amountStr);
             } else {
-                string memory json = vm.readFile("./out/smt_results.json");
-                bytes memory totalAmountBytes = vm.parseJson(json, "totalAmount");
+                string memory smtJson = vm.readFile("./out/smt_results.json");
+                bytes memory totalAmountBytes = vm.parseJson(smtJson, "totalAmount");
                 mintAmount = vm.parseUint(string(totalAmountBytes));
             }
         } catch {
-            string memory json = vm.readFile("./out/smt_results.json");
-            bytes memory totalAmountBytes = vm.parseJson(json, "totalAmount");
+            string memory smtJson = vm.readFile("./out/smt_results.json");
+            bytes memory totalAmountBytes = vm.parseJson(smtJson, "totalAmount");
             mintAmount = vm.parseUint(string(totalAmountBytes));
         }
 
@@ -51,11 +51,16 @@ contract MintAndTransferScript is Script {
             destination = address(distributor);
         }
 
+        // Start broadcasting without passing a private key directly.
+        // Foundry will use the key provided via the command line.
+        vm.startBroadcast();
+        
         // Mint tokens to deployer
-        vm.startBroadcast(deployerKey);
         token.mint(deployerAddr, mintAmount);
+        
         // Transfer all tokens to destination
         token.transfer(destination, mintAmount);
+        
         vm.stopBroadcast();
     }
 }
