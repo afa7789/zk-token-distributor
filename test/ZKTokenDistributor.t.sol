@@ -400,4 +400,166 @@ contract ZKTokenDistributorTest is Test {
         assertTrue(distributor.usedNullifiers(nullifierHash1), "Nullifier1 should be used");
         assertTrue(distributor.usedNullifiers(nullifierHash2), "Nullifier2 should be used");
     }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                    Real Calldata Test                        */
+    /*.•°:°.´+˚•*.°:´.•*.•°:°.´•*°.•°:°.´+˚•*.°:´.•*.•°:°.´+˚•*.°:´.•*/
+
+    /**
+     * @notice Test with REAL calldata from your ZK proof generation
+     * This uses the actual proof data from circuits/circom/output/calldata.txt
+     * and the amount from circuits/circom/input.json
+     */
+    function test_Claim_WithRealCalldata() public {
+        // Deploy with REAL VerifierZK contract instead of mock
+        VerifierZK realVerifier = new VerifierZK();
+        
+        ZKTokenDistributor realDistributor = new ZKTokenDistributor(
+            ROOT,
+            IERC20(address(token)),
+            address(realVerifier),
+            TOTAL_CLAIMABLE,
+            claimPeriodStart,
+            claimPeriodEnd
+        );
+
+        // Transfer tokens to the real distributor
+        vm.prank(owner);
+        token.mint(address(realDistributor), TOTAL_CLAIMABLE);
+
+        // Warp to claim period
+        vm.warp(claimPeriodStart + 1);
+
+        // Your REAL calldata from circuits/circom/output/calldata.txt
+        uint256[2] memory realPa = [
+            0x288b8b6fad3c5f4711a8e76e6fcdb98f820051fb4fbe3dece66cfc0907e9017d,
+            0x16681dd0680033808a1ddc0ee9a060670abbd82a8e48bd0425f48bace866f240
+        ];
+
+        uint256[2][2] memory realPb = [
+            [
+                0x008c07847d9f93d742e8c6c7b1ede7adc18e596b2007146fd5f944bcd5378b55,
+                0x2f4dd9f435df8566a829656c84e0c6b42dc627aaf0e352c4c1bed605d2bb3085
+            ],
+            [
+                0x2bc98ebf48b0c2ee285a08988f64d5e2c63f32caa654910411ef7069a361f69c,
+                0x214173a7face6251f2bf42ded96c200165c16102fc198bb9c5be511e377829d3
+            ]
+        ];
+
+        uint256[2] memory realPc = [
+            0x16abc825322f5c3e54dbbce691e4268d6d61ac3600d446b86878c1b4bb2ae140,
+            0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
+        ];
+
+        // Public signals - nullifierHash from your input.json
+        uint256[1] memory realPubSignals = [
+            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
+        ];
+
+        // Amount from your input.json - but let's use a smaller amount that fits in our test distributor
+        // Original: 20000000000000000000000 (20,000 tokens)
+        // Test amount: 100000000000000000000 (100 tokens - within our 1000 token limit)
+        uint256 realAmount = 100000000000000000000; // 100 * 10^18
+
+        console.log("=== Testing Real Calldata ===");
+        console.log("Amount to claim:", realAmount);
+        console.log("User balance before:", token.balanceOf(user1));
+        console.log("Distributor balance before:", token.balanceOf(address(realDistributor)));
+
+        // First verify the proof works with the VerifierZK directly
+        bool proofValid = realVerifier.verifyProof(realPa, realPb, realPc, realPubSignals);
+        console.log("Direct proof verification:", proofValid);
+        assertTrue(proofValid, "Your real proof should be valid");
+
+        // Now test the full claim function
+        vm.prank(user1);
+        vm.expectEmit(true, false, false, true);
+        emit Claimed(user1, realAmount);
+        
+        realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
+
+        console.log("User balance after:", token.balanceOf(user1));
+        console.log("Distributor balance after:", token.balanceOf(address(realDistributor)));
+
+        // Assertions
+        assertEq(token.balanceOf(user1), realAmount, "User should receive the claimed amount");
+        assertEq(
+            realDistributor.totalClaimable(), 
+            TOTAL_CLAIMABLE - realAmount, 
+            "Total claimable should be reduced"
+        );
+        
+        // Check nullifier is used
+        bytes32 nullifierHash = bytes32(realPubSignals[0]);
+        assertTrue(
+            realDistributor.usedNullifiers(nullifierHash), 
+            "Nullifier should be marked as used"
+        );
+
+        console.log("=== Real Calldata Test PASSED! ===");
+    }
+
+    /**
+     * @notice Test that prevents double spending with real calldata
+     */
+    function test_Revert_When_RealCalldata_DoubleSpend() public {
+        // Deploy with REAL VerifierZK contract
+        VerifierZK realVerifier = new VerifierZK();
+        
+        ZKTokenDistributor realDistributor = new ZKTokenDistributor(
+            ROOT,
+            IERC20(address(token)),
+            address(realVerifier),
+            TOTAL_CLAIMABLE,
+            claimPeriodStart,
+            claimPeriodEnd
+        );
+
+        // Transfer tokens to the real distributor
+        vm.prank(owner);
+        token.mint(address(realDistributor), TOTAL_CLAIMABLE);
+
+        // Warp to claim period
+        vm.warp(claimPeriodStart + 1);
+
+        // Your REAL calldata
+        uint256[2] memory realPa = [
+            0x288b8b6fad3c5f4711a8e76e6fcdb98f820051fb4fbe3dece66cfc0907e9017d,
+            0x16681dd0680033808a1ddc0ee9a060670abbd82a8e48bd0425f48bace866f240
+        ];
+
+        uint256[2][2] memory realPb = [
+            [
+                0x008c07847d9f93d742e8c6c7b1ede7adc18e596b2007146fd5f944bcd5378b55,
+                0x2f4dd9f435df8566a829656c84e0c6b42dc627aaf0e352c4c1bed605d2bb3085
+            ],
+            [
+                0x2bc98ebf48b0c2ee285a08988f64d5e2c63f32caa654910411ef7069a361f69c,
+                0x214173a7face6251f2bf42ded96c200165c16102fc198bb9c5be511e377829d3
+            ]
+        ];
+
+        uint256[2] memory realPc = [
+            0x16abc825322f5c3e54dbbce691e4268d6d61ac3600d446b86878c1b4bb2ae140,
+            0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
+        ];
+
+        uint256[1] memory realPubSignals = [
+            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
+        ];
+
+        uint256 realAmount = 100000000000000000000; // 100 * 10^18 (reduced for test)
+
+        // First claim should succeed
+        vm.prank(user1);
+        realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
+
+        // Second claim with same nullifier should fail
+        vm.prank(user2); // Different user but same nullifier
+        vm.expectRevert(IZKTokenDistributor.TokenDistributor_NullifierAlreadyUsed.selector);
+        realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
+
+        console.log("Double spend protection works correctly!");
+    }
 }
