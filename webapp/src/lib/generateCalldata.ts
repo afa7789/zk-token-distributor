@@ -20,21 +20,20 @@ interface SMTResults {
   leaves: SMTLeaf[];
 }
 
+/**
+ * UserCalldata interface matching exactly what the circuit needs for proof generation.
+ * Based on airdrop_smt.circom inputs and snarkjs requirements.
+ */
 interface UserCalldata {
+  // Circuit inputs (matching input.json structure)
+  merkleRoot: string;
+  nullifierHash: string;
   userAddress: string;
   amount: string;
   nullifier: string;
-  merkleProof: string[];
-  metadata: {
-    keyUint: string;
-    leafHash: string;
-    nullifierHash: string;
-    amountInTokens: string;
-  };
-  instructions: {
-    description: string;
-    steps: string[];
-  };
+  siblings: string[];
+  // Additional metadata for UI display
+  amountInTokens: string;
 }
 
 interface CalldataSummary {
@@ -93,7 +92,7 @@ export class CalldataGenerator {
       const filename = path.join(this.outputDir, `${leaf.key}.json`);
       await fs.writeFile(filename, JSON.stringify(calldata, null, 2));
       
-      console.log(`✓ Generated calldata for ${leaf.key} - Amount: ${calldata.metadata.amountInTokens} tokens`);
+      console.log(`✓ Generated calldata for ${leaf.key} - Amount: ${calldata.amountInTokens} tokens`);
     }
 
     // Create summary file
@@ -106,7 +105,7 @@ export class CalldataGenerator {
       users: validUsers.map(user => ({
         address: user.userAddress,
         amount: user.amount,
-        amountInTokens: user.metadata.amountInTokens
+        amountInTokens: user.amountInTokens
       }))
     };
 
@@ -123,28 +122,20 @@ export class CalldataGenerator {
   }
 
   private generateUserCalldata(leaf: SMTLeaf): UserCalldata {
+    if (!this.smtResults) {
+      throw new Error('SMT results not loaded');
+    }
+
     const amountInTokens = (BigInt(leaf.value) / BigInt(10 ** 18)).toString();
 
     return {
+      merkleRoot: this.smtResults.smtRoot,
+      nullifierHash: leaf.nullifierHash,
       userAddress: leaf.key,
       amount: leaf.value,
       nullifier: leaf.nullifier,
-      merkleProof: leaf.siblings,
-      metadata: {
-        keyUint: leaf.keyUint,
-        leafHash: leaf.leafHash,
-        nullifierHash: leaf.nullifierHash,
-        amountInTokens
-      },
-      instructions: {
-        description: "Use this data to generate ZK proof and claim your tokens",
-        steps: [
-          "1. Go to the claim page on the webapp",
-          `2. Connect your wallet with address: ${leaf.key}`,
-          "3. Click 'Generate Proof' - the system will use this data automatically", 
-          `4. Submit the transaction to claim your ${amountInTokens} tokens`
-        ]
-      }
+      siblings: leaf.siblings,
+      amountInTokens
     };
   }
 
@@ -162,8 +153,17 @@ export class CalldataGenerator {
         return null;
       }
 
-      const generator = new CalldataGenerator();
-      return generator.generateUserCalldata(userLeaf);
+      const amountInTokens = (BigInt(userLeaf.value) / BigInt(10 ** 18)).toString();
+
+      return {
+        merkleRoot: smtResults.smtRoot,
+        nullifierHash: userLeaf.nullifierHash,
+        userAddress: userLeaf.key,
+        amount: userLeaf.value,
+        nullifier: userLeaf.nullifier,
+        siblings: userLeaf.siblings,
+        amountInTokens
+      };
     } catch (error) {
       console.error('Error generating user calldata:', error);
       return null;

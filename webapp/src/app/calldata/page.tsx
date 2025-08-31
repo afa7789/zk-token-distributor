@@ -14,15 +14,13 @@ interface GeneratedCalldata {
 }
 
 interface BackendData {
+  merkleRoot: string;
+  nullifierHash: string;
   userAddress: string;
   amount: string;
   nullifier: string;
-  merkleProof: string[];
-  metadata: {
-    nullifierHash: string;
-    merkleRoot: string;
-    amountInTokens?: string;
-  };
+  siblings: string[];
+  amountInTokens: string;
 }
 
 export default function CalldataPage() {
@@ -75,14 +73,14 @@ export default function CalldataPage() {
     setError(null);
 
     try {
-      // Prepare inputs for circom using backend data
+      // Prepare inputs for circom using backend data (matches input.json structure)
       const circuitInputs = {
-        merkleRoot: backendData.metadata.merkleRoot,
-        nullifierHash: backendData.metadata.nullifierHash,
+        merkleRoot: backendData.merkleRoot,
+        nullifierHash: backendData.nullifierHash,
         userAddress: backendData.userAddress,
         amount: backendData.amount,
         nullifier: backendData.nullifier,
-        siblings: backendData.merkleProof.filter(s => s.trim() !== '')
+        siblings: backendData.siblings.filter((s: string) => s.trim() !== '')
       };
 
       console.log('Generating proof with backend data:', circuitInputs);
@@ -266,7 +264,7 @@ export default function CalldataPage() {
                         ✅ Airdrop data found for your wallet!
                       </p>
                       <p className="text-green-700 text-sm mb-3">
-                        You can claim <strong>{backendData.metadata?.amountInTokens || backendData.amount} tokens</strong>.
+                        You can claim <strong>{backendData.amountInTokens} tokens</strong>.
                         Your proof data is ready to generate.
                       </p>
                     </div>
@@ -327,7 +325,7 @@ export default function CalldataPage() {
                       Token Amount
                     </label>
                     <div className="bg-white p-3 rounded border text-sm">
-                      {backendData.metadata?.amountInTokens || backendData.amount} tokens
+                      {backendData.amountInTokens} tokens
                     </div>
                   </div>
 
@@ -336,7 +334,7 @@ export default function CalldataPage() {
                       Merkle Root
                     </label>
                     <div className="bg-white p-3 rounded border text-sm font-mono break-all">
-                      {backendData.metadata.merkleRoot}
+                      {backendData.merkleRoot}
                     </div>
                   </div>
 
@@ -345,17 +343,17 @@ export default function CalldataPage() {
                       Nullifier Hash
                     </label>
                     <div className="bg-white p-3 rounded border text-sm font-mono break-all">
-                      {backendData.metadata.nullifierHash}
+                      {backendData.nullifierHash}
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Merkle Proof ({backendData.merkleProof.length} siblings)
+                    Merkle Proof ({backendData.siblings.length} siblings)
                   </label>
                   <div className="bg-white p-3 rounded border max-h-32 overflow-y-auto">
-                    {backendData.merkleProof.map((sibling, index) => (
+                    {backendData.siblings.map((sibling: string, index: number) => (
                       <div key={index} className="text-sm font-mono text-gray-600 py-1">
                         [{index}] {sibling}
                       </div>
