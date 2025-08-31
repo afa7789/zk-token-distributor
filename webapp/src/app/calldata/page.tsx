@@ -98,8 +98,8 @@ export default function CalldataPage() {
       const solidityCalldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
       const [a, b, c, signals] = solidityCalldata.split(',').map((x: string) => JSON.parse(x));
 
-      // Format as the expected calldata string
-      const formattedCalldata = `["${a[0]}", "${a[1]}"],[["${b[0][0]}", "${b[0][1]}"],["${b[1][0]}", "${b[1][1]}"]],["${c[0]}", "${c[1]}"],[${signals.map((s: string) => `"${s}"`).join(',')}]`;
+      // Format as the expected calldata string with amount included
+      const formattedCalldata = `["${a[0]}", "${a[1]}"],[["${b[0][0]}", "${b[0][1]}"],["${b[1][0]}", "${b[1][1]}"]],["${c[0]}", "${c[1]}"],[${signals.map((s: string) => `"${s}"`).join(',')}],"${backendData.amount}"`;
 
       setGeneratedCalldata({
         proof: a,

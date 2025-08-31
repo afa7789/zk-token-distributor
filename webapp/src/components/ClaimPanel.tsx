@@ -12,6 +12,7 @@ interface ParsedCalldata {
     c: [string, string];
   };
   publicSignals: [string];
+  amount?: string; // Amount from calldata
 }
 
 export default function ClaimPanel() {
@@ -40,24 +41,39 @@ export default function ClaimPanel() {
       // Remove whitespace and newlines
       const cleaned = input.trim().replace(/\s+/g, '');
       
-      // Expected format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signal1,signal2,...]
+      // Expected format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signal1,signal2,...],"amount"
       // Wrap in brackets to make it valid JSON array and parse
       const calldataArray = JSON.parse('[' + cleaned + ']');
       
-      if (calldataArray.length !== 4) {
-        throw new Error('Expected 4 parts: proof A, proof B, proof C, and public signals');
+      // Check if we have the new format with amount (5 parts) or old format (4 parts)
+      if (calldataArray.length === 5) {
+        // New format with amount
+        const [proofA, proofB, proofC, publicSignals, amount] = calldataArray;
+        
+        return {
+          proof: {
+            a: proofA,
+            b: proofB,
+            c: proofC
+          },
+          publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals],
+          amount: amount
+        };
+      } else if (calldataArray.length === 4) {
+        // Old format without amount
+        const [proofA, proofB, proofC, publicSignals] = calldataArray;
+        
+        return {
+          proof: {
+            a: proofA,
+            b: proofB,
+            c: proofC
+          },
+          publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals]
+        };
+      } else {
+        throw new Error('Expected 4 parts (old format) or 5 parts (new format with amount): proof A, proof B, proof C, public signals, and optionally amount');
       }
-      
-      const [proofA, proofB, proofC, publicSignals] = calldataArray;
-      
-      return {
-        proof: {
-          a: proofA,
-          b: proofB,
-          c: proofC
-        },
-        publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals]
-      };
     } catch (err) {
       console.error('Parse error:', err);
       return null;
@@ -96,11 +112,17 @@ export default function ClaimPanel() {
   const handleClaim = async () => {
     if (!parsedCalldata || !address) return;
 
+    // Check if we have the amount from calldata
+    if (!parsedCalldata.amount) {
+      setError('No amount found in calldata. Please use calldata generated with the new format that includes the amount.');
+      return;
+    }
+
     try {
       await submitClaim({
         proof: parsedCalldata.proof,
         publicSignals: parsedCalldata.publicSignals,
-        amount: "0" // Amount will be extracted from public signals by contract
+        amount: parsedCalldata.amount
       });
       
       // Clear form after successful claim
@@ -203,9 +225,12 @@ export default function ClaimPanel() {
           <textarea
             value={calldataInput}
             onChange={(e) => handleCalldataChange(e.target.value)}
-            placeholder='Paste your calldata here (format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signals...])'
+            placeholder='Paste your calldata here (format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signals...],"amount")'
             className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            💡 New calldata format includes the amount automatically - no need to enter it separately
+          </p>
         </div>
 
         {/* Error Display */}
@@ -218,7 +243,14 @@ export default function ClaimPanel() {
         {/* Parsed Calldata Preview */}
         {parsedCalldata && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800 font-medium mb-2">✅ Calldata parsed successfully!</p>
+            <p className="text-green-800 font-medium mb-2">
+              ✅ Calldata parsed successfully!
+              {parsedCalldata.amount && (
+                <span className="ml-2 text-sm">
+                  (Amount: {(BigInt(parsedCalldata.amount) / BigInt(10**18)).toString()} tokens)
+                </span>
+              )}
+            </p>
             <details className="text-sm">
               <summary className="cursor-pointer text-green-700 hover:text-green-900">
                 🔍 View parsed data
@@ -231,6 +263,9 @@ export default function ClaimPanel() {
                 ]</div>
                 <div><strong>Proof C:</strong> [{parsedCalldata.proof.c.join(', ')}]</div>
                 <div><strong>Public Signals:</strong> [{parsedCalldata.publicSignals.join(', ')}]</div>
+                {parsedCalldata.amount && (
+                  <div><strong>Amount:</strong> {parsedCalldata.amount}</div>
+                )}
               </div>
             </details>
           </div>
@@ -239,11 +274,13 @@ export default function ClaimPanel() {
         {/* Claim Button */}
         <button
           onClick={handleClaim}
-          disabled={!parsedCalldata || !isConnected || isSubmitting}
+          disabled={!parsedCalldata || !isConnected || isSubmitting || !parsedCalldata?.amount}
           className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <>⏳ Submitting Claim...</>
+          ) : !parsedCalldata?.amount ? (
+            <>⚠️ Missing Amount (Use New Calldata Format)</>
           ) : (
             <>🎁 Claim Tokens</>
           )}
@@ -252,6 +289,9 @@ export default function ClaimPanel() {
         {/* Helper Text */}
         <p className="text-sm text-gray-600 text-center">
           💡 Need calldata? Generate it on the <a href="/calldata" className="text-blue-600 hover:text-blue-800 underline">Calldata page</a>
+          {!parsedCalldata?.amount && parsedCalldata && (
+            <><br/><span className="text-orange-600">⚠️ Your calldata is missing the amount. Please regenerate it with the latest format.</span></>
+          )}
         </p>
       </div>
     </div>
