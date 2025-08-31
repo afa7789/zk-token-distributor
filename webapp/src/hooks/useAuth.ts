@@ -1,7 +1,6 @@
 import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
 import { useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import SIWEUtils from '@/lib/siwe';
 import { SiweMessage } from 'siwe';
 
 export const useAuth = () => {
@@ -25,37 +24,61 @@ export const useAuth = () => {
 
     try {
       // Get nonce from server
-      const nonceResp = await fetch('/api/auth/nonce');
-      if (!nonceResp.ok) throw new Error('Failed to fetch nonce');
-      const { data } = await nonceResp.json();
-      const nonce = data?.nonce;
+      const nonceResponse = await fetch('/api/auth/nonce');
+      if (!nonceResponse.ok) {
+        throw new Error('Failed to get nonce');
+      }
+      const { nonce } = await nonceResponse.json();
 
-      // Create SIWE message object and prepared string
+      // Create SIWE message with all required fields
       const message = new SiweMessage({
         domain: window.location.host,
         address,
-        statement: 'Sign in to ZK Token Distributor',
+        statement: 'Sign in with Ethereum to the ZK Token Distributor.',
         uri: window.location.origin,
         version: '1',
-        chainId: 31337,
+        chainId: 31337, // Anvil chain ID
         nonce,
         issuedAt: new Date().toISOString(),
+        // Add expiration time (24 hours from now)
+        expirationTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        // Add not before time (current time)
+        notBefore: new Date().toISOString(),
       });
 
       const messageString = message.prepareMessage();
 
-      // Sign the message string
-      const signature = await signMessageAsync({ message: messageString });
+      // Sign the message
+      const signature = await signMessageAsync({
+        message: messageString,
+      });
 
-      // Verify the signature via server
-      const verification = await SIWEUtils.verifyMessage(messageString, signature);
+      // Verify with server
+      const verifyResponse = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: messageString,
+          signature,
+        }),
+      });
 
-      if (verification.success) {
-        connectStore(address);
-        setAuthenticated(signature);
-        return { success: true, token: signature };
+      if (!verifyResponse.ok) {
+        throw new Error('Authentication failed');
       }
-      throw new Error('SIWE verification failed');
+
+      const result = await verifyResponse.json();
+      
+      if (result.success) {
+        // Update auth store with the token from server
+        connectStore(address);
+        setAuthenticated(result.data.token);
+        return { success: true, token: result.data.token };
+      } else {
+        throw new Error(result.error || 'Authentication failed');
+      }
     } catch (error) {
       console.error('Sign in failed:', error);
       throw error;
@@ -77,5 +100,3 @@ export const useAuth = () => {
     signOut,
   };
 };
-
-export default useAuth;
