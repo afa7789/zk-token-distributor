@@ -1,3 +1,4 @@
+// DISCLAIMER: UNFORTUANLLY I THINK THIS IS NOT FEASIBLE IN FOUNDRY for matching values with circom we are using the script in circuits folder.
 // import "forge-std/Script.sol";
 import "poseidon-solidity/PoseidonT2.sol"; // Use T2 for two-input hashes
 import "poseidon-solidity/PoseidonT3.sol"; // Use T3 for two-input nullifier hash
@@ -295,18 +296,8 @@ contract SMTGeneratorScript is Script {
 
     // New: call external node script (bun) that uses poseidon-lite to compute the same value
     function calculateLeafHash(uint256 key, uint256 value) internal returns (bytes32) {
-        console.log("Disclaimer: using external node poseidon2/3; on-chain Poseidon produced different results in earlier tests.");
-    string[] memory input = new string[](5);
-    input[0] = "bun";
-    input[1] = "poseidon3.js";
-    input[2] = vm.toString(key);
-    input[3] = vm.toString(value);
-    input[4] = "1";
-
-    bytes memory result = vm.ffi(input);
-        // result is ASCII bytes of decimal number
-        uint256 val = parseUintFromBytes(result);
-        return bytes32(bytes32(uint256(val)));
+    // console.log("Disclaimer: using external Bun poseidon3; on-chain Poseidon produced different results in earlier tests.");
+    return callPoseidon3(key, value, 1);
     }
 
     /**
@@ -322,17 +313,8 @@ contract SMTGeneratorScript is Script {
 
     // New: call node poseidon3 wrapper to compute hash(left, right, 0)
     function hashNode(bytes32 left, bytes32 right) internal returns (bytes32) {
-        console.log("Disclaimer: using external node poseidon3; on-chain Poseidon produced different results in earlier tests.");
-    string[] memory input = new string[](5);
-    input[0] = "bun";
-    input[1] = "./scripts/poseidon3.js";
-    input[2] = vm.toString(uint256(left));
-    input[3] = vm.toString(uint256(right));
-    input[4] = "0";
-
-    bytes memory result = vm.ffi(input);
-        uint256 val = parseUintFromBytes(result);
-        return bytes32(bytes32(uint256(val)));
+    // console.log("Disclaimer: using external Bun poseidon3; on-chain Poseidon produced different results in earlier tests.");
+    return callPoseidon3(uint256(left), uint256(right), 0);
     }
 
     // OLD nullifier hash for reference
@@ -342,16 +324,8 @@ contract SMTGeneratorScript is Script {
 
     // New: compute nullifier hash via external node poseidon2 wrapper
     function computeNullifierHash(uint256 userAddress, uint256 nullifier) internal returns (bytes32) {
-        console.log("Disclaimer: using external node poseidon2; on-chain Poseidon produced different results in earlier tests.");
-        string[] memory input = new string[](4);
-        input[0] = "bun";
-        input[1] = "poseidon2.js";
-        input[2] = vm.toString(userAddress);
-        input[3] = vm.toString(nullifier);
-
-        bytes memory result = vm.ffi(input);
-        uint256 val = parseUintFromBytes(result);
-        return bytes32(bytes32(uint256(val)));
+    // console.log("Disclaimer: using external Bun poseidon2; on-chain Poseidon produced different results in earlier tests.");
+    return callPoseidon2(userAddress, nullifier);
     }
 
     // Helper to parse ASCII decimal bytes returned by node script to uint256
@@ -364,6 +338,35 @@ contract SMTGeneratorScript is Script {
             }
         }
         return res;
+    }
+
+    // Helper to call poseidon2 via Bun using vm.ffi
+    function callPoseidon2(uint256 a, uint256 b) internal returns (bytes32) {
+    // Call the local Bun wrapper at ./script/poseidon2.js
+    string[] memory input = new string[](4);
+    input[0] = "bun";
+    input[1] = "./script/poseidon2.js";
+    input[2] = vm.toString(a);
+    input[3] = vm.toString(b);
+
+    bytes memory result = vm.ffi(input);
+    uint256 val = parseUintFromBytes(result);
+    return bytes32(uint256(val));
+    }
+
+    // Helper to call poseidon3 via Bun using vm.ffi
+    function callPoseidon3(uint256 a, uint256 b, uint256 c) internal returns (bytes32) {
+    // Call the local Bun wrapper at ./script/poseidon3.js
+    string[] memory input = new string[](5);
+    input[0] = "bun";
+    input[1] = "./script/poseidon3.js";
+    input[2] = vm.toString(a);
+    input[3] = vm.toString(b);
+    input[4] = vm.toString(c);
+
+    bytes memory result = vm.ffi(input);
+    uint256 val = parseUintFromBytes(result);
+    return bytes32(uint256(val));
     }
 
     // Utility functions (same as before)
