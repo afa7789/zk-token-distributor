@@ -16,6 +16,7 @@ export default function Home() {
       <header className="max-w-7xl mx-auto mb-6 flex justify-between items-center">
         <h1 className="text-lg font-semibold">ZK Token Distributor</h1>
         <nav className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-sm text-gray-700">Dashboard</Link>
           <Link href="/about" className="text-sm text-gray-700">About</Link>
           <Link href="/claim" className="text-sm text-gray-700">Claim</Link>
           <StyledConnectKitButton />

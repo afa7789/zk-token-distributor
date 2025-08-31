@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "../src/VerifierZK.sol";
 
+// IF YOU SWAP VERIFIER SOME TESTS ARE GOING TO BREAK,
+// YOU WILL HAVE TO ALSO CHANGE VALUES OF A TESTING INPUT TO MATCH :)
+
 contract VerifierZKTest is Test {
     VerifierZK public verifier;
 

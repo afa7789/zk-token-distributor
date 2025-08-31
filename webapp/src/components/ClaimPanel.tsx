@@ -41,9 +41,14 @@ export default function ClaimPanel() {
       // Remove whitespace and newlines
       const cleaned = input.trim().replace(/\s+/g, '');
       
+      console.log('Parsing calldata:', cleaned.substring(0, 100) + '...');
+      
       // Expected format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signal1,signal2,...],"amount"
       // Wrap in brackets to make it valid JSON array and parse
       const calldataArray = JSON.parse('[' + cleaned + ']');
+      
+      console.log('Parsed array length:', calldataArray.length);
+      console.log('Parsed array:', calldataArray);
       
       // Check if we have the new format with amount (5 parts) or old format (4 parts)
       if (calldataArray.length === 5) {
@@ -72,7 +77,7 @@ export default function ClaimPanel() {
           publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals]
         };
       } else {
-        throw new Error('Expected 4 parts (old format) or 5 parts (new format with amount): proof A, proof B, proof C, public signals, and optionally amount');
+        throw new Error(`Expected 4 parts (old format) or 5 parts (new format with amount), got ${calldataArray.length} parts`);
       }
     } catch (err) {
       console.error('Parse error:', err);

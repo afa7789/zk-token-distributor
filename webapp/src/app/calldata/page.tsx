@@ -96,10 +96,46 @@ export default function CalldataPage() {
 
       // Export Solidity calldata
       const solidityCalldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
-      const [a, b, c, signals] = solidityCalldata.split(',').map((x: string) => JSON.parse(x));
+      
+      console.log('Raw solidityCalldata:', solidityCalldata);
+      
+      // Parse the calldata properly - it comes as a comma-separated string of JSON arrays
+      // We need to extract each JSON component carefully
+      const calldataStr = solidityCalldata.trim();
+      
+      // Find the boundaries of each JSON component
+      let bracketCount = 0;
+      let currentStart = 0;
+      const components = [];
+      
+      for (let i = 0; i < calldataStr.length; i++) {
+        const char = calldataStr[i];
+        if (char === '[') bracketCount++;
+        if (char === ']') bracketCount--;
+        
+        if (char === ',' && bracketCount === 0) {
+          components.push(calldataStr.substring(currentStart, i).trim());
+          currentStart = i + 1;
+        }
+      }
+      // Add the last component
+      components.push(calldataStr.substring(currentStart).trim());
+      
+      console.log('Calldata components:', components);
+      
+      // Parse each component
+      const a = JSON.parse(components[0]);
+      const b = JSON.parse(components[1]);
+      const c = JSON.parse(components[2]);
+      const signals = JSON.parse(components[3]);
 
-      // Format as the expected calldata string with amount included
-      const formattedCalldata = `["${a[0]}", "${a[1]}"],[["${b[0][0]}", "${b[0][1]}"],["${b[1][0]}", "${b[1][1]}"]],["${c[0]}", "${c[1]}"],[${signals.map((s: string) => `"${s}"`).join(',')}],"${backendData.amount}"`;
+      console.log('Parsed calldata components:', { a, b, c, signals, amount: backendData.amount });
+
+      // Format as the expected calldata string with amount included as a separate element
+      // Use JSON.stringify to ensure proper formatting
+      const formattedCalldata = `${JSON.stringify(a)},${JSON.stringify(b)},${JSON.stringify(c)},${JSON.stringify(signals)},"${backendData.amount}"`;
+
+      console.log('Formatted calldata:', formattedCalldata);
 
       setGeneratedCalldata({
         proof: a,

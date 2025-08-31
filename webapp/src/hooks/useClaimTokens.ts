@@ -2,13 +2,13 @@ import { useState, useCallback } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { ZKTokenDistributor__factory } from '@/types';
 import { ClaimData } from '@/types/api';
-
-const DISTRIBUTOR_ADDRESS = process.env.NEXT_PUBLIC_DISTRIBUTOR_ADDRESS as `0x${string}`;
+import { useContractAddress } from '@/components/ContractsProvider';
 
 export const useClaimTokens = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { address } = useAccount();
+  const distributorAddress = useContractAddress('distributor');
 
   const { data: hash, writeContract, isPending } = useWriteContract();
 
@@ -19,6 +19,10 @@ export const useClaimTokens = () => {
   const submitClaim = useCallback(async (claimData: ClaimData) => {
     if (!address) {
       throw new Error('Wallet not connected');
+    }
+
+    if (!distributorAddress) {
+      throw new Error('Distributor contract address not available');
     }
 
     if (!writeContract) {
@@ -39,7 +43,7 @@ export const useClaimTokens = () => {
       ] as const;
 
       writeContract({
-        address: DISTRIBUTOR_ADDRESS,
+        address: distributorAddress as `0x${string}`,
         abi: ZKTokenDistributor__factory.abi,
         functionName: 'claim',
         args,
@@ -52,7 +56,7 @@ export const useClaimTokens = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [address, writeContract]);
+  }, [address, distributorAddress, writeContract]);
 
   const validateProofFile = useCallback((fileContent: string): ClaimData | null => {
     try {
