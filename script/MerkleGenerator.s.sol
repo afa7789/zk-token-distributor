@@ -84,9 +84,10 @@ contract SMTGeneratorScript is Script {
             uint256 nullifier = uint256(keccak256(abi.encodePacked(leafData[i].account, "secret", i)));
             nullifiers[i] = nullifier;
 
-            // Calculate nullifier hash using PoseidonT3 (matches your circuit)
-            // The circuit uses Poseidon(2) - only userAddress and nullifier
-            bytes32 nullifierHash = bytes32(PoseidonT3.hash([uint256(uint160(leafData[i].account)), nullifier]));
+            // Calculate nullifier hash using external node poseidon2 (matches your circom/test harness)
+            // NOTE: the on-chain Poseidon implementation produced a different value in earlier tests.
+            // We keep the old implementation available as computeNullifierHash_OLD for reference.
+            bytes32 nullifierHash = computeNullifierHash(uint256(uint160(leafData[i].account)), nullifier);
             nullifierHashes[i] = nullifierHash;
 
             // Verify the SMT proof
@@ -238,7 +239,6 @@ contract SMTGeneratorScript is Script {
      */
     function verifyInclusionProof(address key, uint256 value, bytes32[] memory proof, bytes32 expectedRoot)
         internal
-        pure
         returns (bool)
     {
         uint256 keyUint = uint256(uint160(key));
@@ -263,7 +263,6 @@ contract SMTGeneratorScript is Script {
      */
     function verifyNonInclusionProof(address key, bytes32[] memory proof, bytes32 expectedRoot)
         internal
-        pure
         returns (bool)
     {
         uint256 keyUint = uint256(uint160(key));
@@ -288,9 +287,26 @@ contract SMTGeneratorScript is Script {
      * SMTHash1 in circomlib uses PoseidonT4 with (key, value, 1)
      * The 1 is domain separation to indicate this is a leaf hash
      */
-    function calculateLeafHash(uint256 key, uint256 value) internal pure returns (bytes32) {
+    // OLD: on-chain Poseidon (kept for reference)
+    function calculateLeafHash_OLD(uint256 key, uint256 value) internal pure returns (bytes32) {
         // SMTHash1: Poseidon(key, value, 1) - 1 indicates leaf
         return bytes32(PoseidonT4.hash([key, value, 1]));
+    }
+
+    // New: call external node script (bun) that uses poseidon-lite to compute the same value
+    function calculateLeafHash(uint256 key, uint256 value) internal returns (bytes32) {
+        console.log("Disclaimer: using external node poseidon2/3; on-chain Poseidon produced different results in earlier tests.");
+    string[] memory input = new string[](5);
+    input[0] = "bun";
+    input[1] = "poseidon3.js";
+    input[2] = vm.toString(key);
+    input[3] = vm.toString(value);
+    input[4] = "1";
+
+    bytes memory result = vm.ffi(input);
+        // result is ASCII bytes of decimal number
+        uint256 val = parseUintFromBytes(result);
+        return bytes32(bytes32(uint256(val)));
     }
 
     /**
@@ -298,9 +314,56 @@ contract SMTGeneratorScript is Script {
      * SMTHash2 in circomlib uses PoseidonT4 with (left, right, 0)
      * The 0 is domain separation to indicate this is an internal node hash
      */
-    function hashNode(bytes32 left, bytes32 right) internal pure returns (bytes32) {
+    // OLD: on-chain Poseidon
+    function hashNode_OLD(bytes32 left, bytes32 right) internal pure returns (bytes32) {
         // SMTHash2: Poseidon(left, right, 0) - 0 indicates internal node
         return bytes32(PoseidonT4.hash([uint256(left), uint256(right), 0]));
+    }
+
+    // New: call node poseidon3 wrapper to compute hash(left, right, 0)
+    function hashNode(bytes32 left, bytes32 right) internal returns (bytes32) {
+        console.log("Disclaimer: using external node poseidon3; on-chain Poseidon produced different results in earlier tests.");
+    string[] memory input = new string[](5);
+    input[0] = "bun";
+    input[1] = "./scripts/poseidon3.js";
+    input[2] = vm.toString(uint256(left));
+    input[3] = vm.toString(uint256(right));
+    input[4] = "0";
+
+    bytes memory result = vm.ffi(input);
+        uint256 val = parseUintFromBytes(result);
+        return bytes32(bytes32(uint256(val)));
+    }
+
+    // OLD nullifier hash for reference
+    function computeNullifierHash_OLD(uint256 userAddress, uint256 nullifier) internal pure returns (bytes32) {
+        return bytes32(PoseidonT3.hash([userAddress, nullifier]));
+    }
+
+    // New: compute nullifier hash via external node poseidon2 wrapper
+    function computeNullifierHash(uint256 userAddress, uint256 nullifier) internal returns (bytes32) {
+        console.log("Disclaimer: using external node poseidon2; on-chain Poseidon produced different results in earlier tests.");
+        string[] memory input = new string[](4);
+        input[0] = "bun";
+        input[1] = "poseidon2.js";
+        input[2] = vm.toString(userAddress);
+        input[3] = vm.toString(nullifier);
+
+        bytes memory result = vm.ffi(input);
+        uint256 val = parseUintFromBytes(result);
+        return bytes32(bytes32(uint256(val)));
+    }
+
+    // Helper to parse ASCII decimal bytes returned by node script to uint256
+    function parseUintFromBytes(bytes memory b) internal pure returns (uint256) {
+        uint256 res = 0;
+        for (uint256 i = 0; i < b.length; i++) {
+            bytes1 char = b[i];
+            if (char >= 0x30 && char <= 0x39) {
+                res = res * 10 + (uint8(char) - 48);
+            }
+        }
+        return res;
     }
 
     // Utility functions (same as before)
