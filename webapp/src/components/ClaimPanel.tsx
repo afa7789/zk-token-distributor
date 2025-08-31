@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { ConnectKitButton } from 'connectkit';
 import { useClaimTokens } from '@/hooks/useClaimTokens';
+import TransactionStatus from '@/components/TransactionStatus';
 
 interface ParsedCalldata {
   proof: {
@@ -22,7 +23,7 @@ export default function ClaimPanel() {
   const [parsedCalldata, setParsedCalldata] = useState<ParsedCalldata | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generatedWallet, setGeneratedWallet] = useState<string | null>(null);
-  const { submitClaim, isSubmitting } = useClaimTokens();
+  const { submitClaim, transactionState } = useClaimTokens();
 
   // Check localStorage for wallet that generated calldata
   useEffect(() => {
@@ -129,12 +130,9 @@ export default function ClaimPanel() {
         publicSignals: parsedCalldata.publicSignals,
         amount: parsedCalldata.amount
       });
-      
-      // Clear form after successful claim
-      setCalldataInput('');
-      setParsedCalldata(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Claim failed');
+      // Error handling is now done in the useClaimTokens hook and displayed via TransactionStatus
+      console.error('Claim failed:', err);
     }
   };
 
@@ -279,10 +277,10 @@ export default function ClaimPanel() {
         {/* Claim Button */}
         <button
           onClick={handleClaim}
-          disabled={!parsedCalldata || !isConnected || isSubmitting || !parsedCalldata?.amount}
+          disabled={!parsedCalldata || !isConnected || transactionState.isSubmitting || !parsedCalldata?.amount}
           className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {isSubmitting ? (
+          {transactionState.isSubmitting ? (
             <>⏳ Submitting Claim...</>
           ) : !parsedCalldata?.amount ? (
             <>⚠️ Missing Amount (Use New Calldata Format)</>
@@ -290,6 +288,18 @@ export default function ClaimPanel() {
             <>🎁 Claim Tokens</>
           )}
         </button>
+
+        {/* Transaction Status */}
+        <TransactionStatus 
+          transactionState={transactionState}
+          onClose={() => {
+            // Optionally clear the form on success
+            if (transactionState.isSuccess) {
+              setCalldataInput('');
+              setParsedCalldata(null);
+            }
+          }}
+        />
 
         {/* Helper Text */}
         <p className="text-sm text-gray-600 text-center">

@@ -3,16 +3,32 @@ import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagm
 import { ZKTokenDistributor__factory } from '@/types';
 import { ClaimData } from '@/types/api';
 import { useContractAddress } from '@/components/ContractsProvider';
+import { formatTransactionError } from '@/lib/errorDecoder';
+import type { TransactionReceipt } from 'viem';
+
+export interface TransactionState {
+  hash?: `0x${string}`;
+  isSubmitting: boolean;
+  isPending: boolean;
+  isWaitingForConfirmation: boolean;
+  isSuccess: boolean;
+  error: string | null;
+  receipt?: TransactionReceipt;
+}
 
 export const useClaimTokens = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { address } = useAccount();
   const distributorAddress = useContractAddress('distributor');
 
-  const { data: hash, writeContract, isPending } = useWriteContract();
+  const { data: hash, writeContract, isPending, error: writeError } = useWriteContract();
 
-  const { isLoading: isTransactionLoading, isSuccess } = useWaitForTransactionReceipt({
+  const { 
+    data: receipt, 
+    isLoading: isWaitingForConfirmation, 
+    isSuccess,
+    error: receiptError 
+  } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -29,7 +45,6 @@ export const useClaimTokens = () => {
       throw new Error('Contract write function not available');
     }
 
-    setIsSubmitting(true);
     setError(null);
 
     try {
@@ -50,11 +65,9 @@ export const useClaimTokens = () => {
       });
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Claim failed';
+      const errorMessage = formatTransactionError(err);
       setError(errorMessage);
       throw err;
-    } finally {
-      setIsSubmitting(false);
     }
   }, [address, distributorAddress, writeContract]);
 
@@ -86,14 +99,32 @@ export const useClaimTokens = () => {
     }
   }, []);
 
+  // Aggregate all errors
+  const currentError = error || 
+    (writeError ? formatTransactionError(writeError) : null) || 
+    (receiptError ? formatTransactionError(receiptError) : null);
+
+  const transactionState: TransactionState = {
+    hash,
+    isSubmitting: isPending,
+    isPending,
+    isWaitingForConfirmation,
+    isSuccess,
+    error: currentError,
+    receipt,
+  };
+
   return {
     submitClaim,
     validateProofFile,
-    isSubmitting: isSubmitting || isPending || isTransactionLoading,
-    isSuccess,
-    error,
-    transactionHash: hash,
+    transactionState,
     clearError: () => setError(null),
+    
+    // Legacy props for backwards compatibility
+    isSubmitting: isPending || isWaitingForConfirmation,
+    isSuccess,
+    error: currentError,
+    transactionHash: hash,
   };
 };
 
