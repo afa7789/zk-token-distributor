@@ -292,8 +292,8 @@ contract SMTGeneratorScript is Script {
 
     // New: call external node script (bun) that uses poseidon-lite to compute the same value
     function calculateLeafHash(uint256 key, uint256 value) internal returns (bytes32) {
-    // console.log("Disclaimer: using external Bun poseidon3; on-chain Poseidon produced different results in earlier tests.");
-    return callPoseidon3(key, value, 1);
+        // console.log("Disclaimer: using external Bun poseidon3; on-chain Poseidon produced different results in earlier tests.");
+        return callPoseidon3(key, value, 1);
     }
 
     /**
@@ -309,8 +309,8 @@ contract SMTGeneratorScript is Script {
 
     // New: call node poseidon3 wrapper to compute hash(left, right, 0)
     function hashNode(bytes32 left, bytes32 right) internal returns (bytes32) {
-    // console.log("Disclaimer: using external Bun poseidon3; on-chain Poseidon produced different results in earlier tests.");
-    return callPoseidon3(uint256(left), uint256(right), 0);
+        // console.log("Disclaimer: using external Bun poseidon3; on-chain Poseidon produced different results in earlier tests.");
+        return callPoseidon3(uint256(left), uint256(right), 0);
     }
 
     // OLD nullifier hash for reference
@@ -320,8 +320,8 @@ contract SMTGeneratorScript is Script {
 
     // New: compute nullifier hash via external node poseidon2 wrapper
     function computeNullifierHash(uint256 userAddress, uint256 nullifier) internal returns (bytes32) {
-    // console.log("Disclaimer: using external Bun poseidon2; on-chain Poseidon produced different results in earlier tests.");
-    return callPoseidon2(userAddress, nullifier);
+        // console.log("Disclaimer: using external Bun poseidon2; on-chain Poseidon produced different results in earlier tests.");
+        return callPoseidon2(userAddress, nullifier);
     }
 
     // Helper to parse ASCII decimal bytes returned by node script to uint256
@@ -338,31 +338,31 @@ contract SMTGeneratorScript is Script {
 
     // Helper to call poseidon2 via Bun using vm.ffi
     function callPoseidon2(uint256 a, uint256 b) internal returns (bytes32) {
-    // Call the local Bun wrapper at ./script/poseidon2.js
-    string[] memory input = new string[](4);
-    input[0] = "bun";
-    input[1] = "./script/poseidon2.js";
-    input[2] = vm.toString(a);
-    input[3] = vm.toString(b);
+        // Call the local Bun wrapper at ./script/poseidon2.js
+        string[] memory input = new string[](4);
+        input[0] = "bun";
+        input[1] = "./script/poseidon2.js";
+        input[2] = vm.toString(a);
+        input[3] = vm.toString(b);
 
-    bytes memory result = vm.ffi(input);
-    uint256 val = parseUintFromBytes(result);
-    return bytes32(uint256(val));
+        bytes memory result = vm.ffi(input);
+        uint256 val = parseUintFromBytes(result);
+        return bytes32(uint256(val));
     }
 
     // Helper to call poseidon3 via Bun using vm.ffi
     function callPoseidon3(uint256 a, uint256 b, uint256 c) internal returns (bytes32) {
-    // Call the local Bun wrapper at ./script/poseidon3.js
-    string[] memory input = new string[](5);
-    input[0] = "bun";
-    input[1] = "./script/poseidon3.js";
-    input[2] = vm.toString(a);
-    input[3] = vm.toString(b);
-    input[4] = vm.toString(c);
+        // Call the local Bun wrapper at ./script/poseidon3.js
+        string[] memory input = new string[](5);
+        input[0] = "bun";
+        input[1] = "./script/poseidon3.js";
+        input[2] = vm.toString(a);
+        input[3] = vm.toString(b);
+        input[4] = vm.toString(c);
 
-    bytes memory result = vm.ffi(input);
-    uint256 val = parseUintFromBytes(result);
-    return bytes32(uint256(val));
+        bytes memory result = vm.ffi(input);
+        uint256 val = parseUintFromBytes(result);
+        return bytes32(uint256(val));
     }
 
     // Utility functions (same as before)

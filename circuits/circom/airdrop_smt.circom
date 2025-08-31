@@ -29,10 +29,39 @@ template AirdropInclusionOnly(levels) {
     nullifierHash === nullifierHasher.out;
     
     // 2. Verify amount > 0
-    component amountCheck = GreaterThan(252);
-    amountCheck.in[0] <== amount;
-    amountCheck.in[1] <== 0;
-    
+    // component amountCheck = GreaterThan(252);
+    // amountCheck.in[0] <== amount;
+    // amountCheck.in[1] <== 0;
+    // the above seems to be failing and I can't figure out how to fix it.
+    // trying the change bellow
+        //     ➜  circom git:(master) ✗ bun output/generate_witness.js output/airdrop_smt.wasm input2.json output/witness.wtns
+        // 161 |           try {
+        // 162 |                     this.instance.exports.setInputSignal(hMSB, hLSB,i);
+        // 163 |               input_counter++;
+        // 164 |           } catch (err) {
+        // 165 |               // console.log(`After adding signal ${i} of ${k}`)
+        // 166 |                     throw new Error(err);
+        //                                 ^
+        // error: Error: Assert Failed.
+        // Error in template Num2Bits_71 line: 38
+        // Error in template LessThan_72 line: 96
+        // Error in template GreaterThan_73 line: 125
+        // Error in template AirdropInclusionOnly_149 line: 34
+
+        //       at <anonymous> (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/witness_calculator.js:166:27)
+        //       at forEach (1:11)
+        //       at _doCalculateWitness (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/witness_calculator.js:141:14)
+        //       at _doCalculateWitness (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/witness_calculator.js:131:31)
+        //       at calculateWitness (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/witness_calculator.js:179:20)
+        //       at calculateWitness (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/witness_calculator.js:176:28)
+        //       at <anonymous> (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/generate_witness.js:11:39)
+        //       at <anonymous> (/Users/afa/Developer/study/erc55_core/hackaton/circuits/circom/output/generate_witness.js:10:27)
+
+    // 2. Verify amount is non-zero (fixed - no division)
+    component amountCheck = IsZero();
+    amountCheck.in <== amount;
+    signal amountNonZero <== 1 - amountCheck.out;
+
     // 3. Create leaf hash for SMT: H(1 | userAddress | amount)
     component leafHash = SMTHash1();
     leafHash.key <== userAddress;
