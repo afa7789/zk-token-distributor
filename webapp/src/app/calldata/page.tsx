@@ -5,15 +5,6 @@ import { useAccount } from 'wagmi';
 import { useAuth } from '@/hooks/useAuth';
 import * as snarkjs from 'snarkjs';
 
-interface ProofInputs {
-  merkleRoot: string;
-  nullifierHash: string;
-  userAddress: string;
-  amount: string;
-  nullifier: string;
-  siblings: string[];
-}
-
 interface GeneratedCalldata {
   proof: [string, string];
   proofB: [[string, string], [string, string]];
@@ -38,14 +29,6 @@ export default function CalldataPage() {
   const { address, isConnected } = useAccount();
   const { isAuthenticated, signIn } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
-  const [inputs, setInputs] = useState<ProofInputs>({
-    merkleRoot: '',
-    nullifierHash: '',
-    userAddress: address || '',
-    amount: '',
-    nullifier: '',
-    siblings: ['']
-  });
   const [generatedCalldata, setGeneratedCalldata] = useState<GeneratedCalldata | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,33 +58,6 @@ export default function CalldataPage() {
     }
   }, [address]);
 
-  // Load data from backend into form
-  const loadBackendData = () => {
-    if (!backendData) return;
-
-    setInputs({
-      merkleRoot: backendData.metadata.merkleRoot,
-      nullifierHash: backendData.metadata.nullifierHash,
-      userAddress: backendData.userAddress,
-      amount: backendData.amount,
-      nullifier: backendData.nullifier,
-      siblings: backendData.merkleProof
-    });
-  };
-
-  // Clear form
-  const clearForm = () => {
-    setInputs({
-      merkleRoot: '',
-      nullifierHash: '',
-      userAddress: address || '',
-      amount: '',
-      nullifier: '',
-      siblings: ['']
-    });
-    setGeneratedCalldata(null);
-  };
-
   // Check backend data when wallet connects
   useEffect(() => {
     if (isConnected && address) {
@@ -109,50 +65,27 @@ export default function CalldataPage() {
     }
   }, [isConnected, address, checkBackendData]);
 
-  const handleInputChange = (field: keyof ProofInputs, value: string) => {
-    setInputs(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSiblingsChange = (index: number, value: string) => {
-    setInputs(prev => ({
-      ...prev,
-      siblings: prev.siblings.map((sibling, i) => i === index ? value : sibling)
-    }));
-  };
-
-  const addSibling = () => {
-    setInputs(prev => ({
-      ...prev,
-      siblings: [...prev.siblings, '']
-    }));
-  };
-
-  const removeSibling = (index: number) => {
-    setInputs(prev => ({
-      ...prev,
-      siblings: prev.siblings.filter((_, i) => i !== index)
-    }));
-  };
-
   const generateProof = async () => {
+    if (!backendData) {
+      setError('No backend data available. Please ensure your wallet is eligible for the airdrop.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Prepare inputs for circom
+      // Prepare inputs for circom using backend data
       const circuitInputs = {
-        merkleRoot: inputs.merkleRoot,
-        nullifierHash: inputs.nullifierHash,
-        userAddress: inputs.userAddress,
-        amount: inputs.amount,
-        nullifier: inputs.nullifier,
-        siblings: inputs.siblings.filter(s => s.trim() !== '')
+        merkleRoot: backendData.metadata.merkleRoot,
+        nullifierHash: backendData.metadata.nullifierHash,
+        userAddress: backendData.userAddress,
+        amount: backendData.amount,
+        nullifier: backendData.nullifier,
+        siblings: backendData.merkleProof.filter(s => s.trim() !== '')
       };
 
-      console.log('Generating proof with inputs:', circuitInputs);
+      console.log('Generating proof with backend data:', circuitInputs);
 
       // Generate the proof using snarkjs
       const { proof, publicSignals } = await snarkjs.groth16.fullProve(
@@ -314,9 +247,13 @@ export default function CalldataPage() {
           {isConnected && address && (
             <div className="mb-6">
               {checkingBackend && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-gray-700">
-                    ⏳ Checking if your wallet has airdrop data...
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-700 flex items-center gap-2">
+                    <span className="animate-spin">⏳</span>
+                    Checking airdrop eligibility for your wallet...
+                  </p>
+                  <p className="text-blue-600 text-sm mt-1">
+                    Verifying if your address is included in the merkle tree.
                   </p>
                 </div>
               )}
@@ -330,34 +267,31 @@ export default function CalldataPage() {
                       </p>
                       <p className="text-green-700 text-sm mb-3">
                         You can claim <strong>{backendData.metadata?.amountInTokens || backendData.amount} tokens</strong>.
-                        Click &quot;Load My Data&quot; to auto-fill the form.
+                        Your proof data is ready to generate.
                       </p>
                     </div>
-                    <button
-                      onClick={loadBackendData}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
-                    >
-                      📥 Load My Data
-                    </button>
                   </div>
                 </div>
               )}
 
               {hasBackendData === false && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-yellow-800">
-                        ⚠️ No airdrop data found for your wallet ({address?.slice(0, 6)}...{address?.slice(-4)}).
+                    <div className="flex-1">
+                      <p className="text-red-800 font-semibold">
+                        🚫 No Airdrop Eligibility Found
                       </p>
-                      <p className="text-yellow-700 text-sm mt-1">
-                        You can still generate proofs manually by filling the form below with your merkle tree data.
+                      <p className="text-red-700 text-sm mt-1">
+                        Wallet <span className="font-mono">{address?.slice(0, 6)}...{address?.slice(-4)}</span> is not included in the airdrop merkle tree.
+                      </p>
+                      <p className="text-red-600 text-xs mt-2">
+                        ⚠️ <strong>ZK Proof generation is not available</strong> - only eligible addresses can generate valid proofs.
                       </p>
                     </div>
                     <button
                       onClick={checkBackendData}
                       disabled={checkingBackend}
-                      className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 text-sm disabled:opacity-50"
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 flex-shrink-0 ml-4"
                     >
                       🔄 Recheck
                     </button>
@@ -373,131 +307,103 @@ export default function CalldataPage() {
             </div>
           )}
 
-          {/* Input Form */}
-          <div className="space-y-6 mb-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Proof Inputs</h2>
-              <button
-                onClick={clearForm}
-                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                🗑️ Clear Form
-              </button>
-            </div>
-            
-            {/* Basic inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Merkle Root
-                </label>
-                <input
-                  type="text"
-                  value={inputs.merkleRoot}
-                  onChange={(e) => handleInputChange('merkleRoot', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0x..."
-                />
-              </div>
+          {/* Backend Data Display */}
+          {hasBackendData && backendData && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold mb-4">📋 Your Airdrop Data</h2>
+              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Wallet Address
+                    </label>
+                    <div className="bg-white p-3 rounded border text-sm font-mono">
+                      {backendData.userAddress}
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nullifier Hash
-                </label>
-                <input
-                  type="text"
-                  value={inputs.nullifierHash}
-                  onChange={(e) => handleInputChange('nullifierHash', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0x..."
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Token Amount
+                    </label>
+                    <div className="bg-white p-3 rounded border text-sm">
+                      {backendData.metadata?.amountInTokens || backendData.amount} tokens
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  User Address
-                </label>
-                <input
-                  type="text"
-                  value={inputs.userAddress}
-                  onChange={(e) => handleInputChange('userAddress', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0x..."
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Merkle Root
+                    </label>
+                    <div className="bg-white p-3 rounded border text-sm font-mono break-all">
+                      {backendData.metadata.merkleRoot}
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="text"
-                  value={inputs.amount}
-                  onChange={(e) => handleInputChange('amount', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="1000000000000000000"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nullifier
-                </label>
-                <input
-                  type="text"
-                  value={inputs.nullifier}
-                  onChange={(e) => handleInputChange('nullifier', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Secret nullifier value"
-                />
-              </div>
-            </div>
-
-            {/* Siblings array */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Merkle Proof Siblings
-              </label>
-              {inputs.siblings.map((sibling, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={sibling}
-                    onChange={(e) => handleSiblingsChange(index, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={`Sibling ${index}`}
-                  />
-                  {inputs.siblings.length > 1 && (
-                    <button
-                      onClick={() => removeSibling(index)}
-                      className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                    >
-                      ❌
-                    </button>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nullifier Hash
+                    </label>
+                    <div className="bg-white p-3 rounded border text-sm font-mono break-all">
+                      {backendData.metadata.nullifierHash}
+                    </div>
+                  </div>
                 </div>
-              ))}
-              <button
-                onClick={addSibling}
-                className="mt-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-              >
-                ➕ Add Sibling
-              </button>
-            </div>
 
-            {/* Generate button */}
-            <button
-              onClick={generateProof}
-              disabled={loading}
-              className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>⏳ Generating Proof...</>
-              ) : (
-                <>🔐 Generate Proof</>
-              )}
-            </button>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Merkle Proof ({backendData.merkleProof.length} siblings)
+                  </label>
+                  <div className="bg-white p-3 rounded border max-h-32 overflow-y-auto">
+                    {backendData.merkleProof.map((sibling, index) => (
+                      <div key={index} className="text-sm font-mono text-gray-600 py-1">
+                        [{index}] {sibling}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Generate Proof Button */}
+              <div className="mt-6">
+                <button
+                  onClick={generateProof}
+                  disabled={loading || !backendData}
+                  className="w-full bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg font-semibold"
+                >
+                  {loading ? (
+                    <>⏳ Generating ZK Proof...</>
+                  ) : (
+                    <>🔐 Generate ZK Proof & Calldata</>
+                  )}
+                </button>
+                <p className="text-sm text-gray-600 mt-2 text-center">
+                  This will generate a zero-knowledge proof using your airdrop data
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* No Data State */}
+          {hasBackendData === false && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">�</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Proof Generation Available</h3>
+              <p className="text-gray-600 mb-4">
+                Your wallet address is not eligible for the current airdrop distribution.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-red-800 text-sm">
+                  <strong>⚠️ Cannot Generate ZK Proof</strong><br/>
+                  No merkle tree data found for address:<br/>
+                  <span className="font-mono text-xs break-all">{address}</span>
+                </p>
+              </div>
+              <p className="text-gray-500 text-sm mt-4">
+                Only addresses included in the airdrop merkle tree can generate valid proofs.
+              </p>
+            </div>
+          )}
 
           {/* Generated Calldata Display */}
           {generatedCalldata && (
