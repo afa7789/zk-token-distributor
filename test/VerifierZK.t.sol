@@ -37,12 +37,10 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [
-            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
-        ];
+        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
-        
+
         console.log("Proof verification result:", result);
         assertTrue(result, "Valid proof should be accepted");
     }
@@ -70,12 +68,10 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [
-            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
-        ];
+        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
-        
+
         console.log("Invalid proof verification result:", result);
         assertFalse(result, "Invalid proof should be rejected");
     }
@@ -108,7 +104,7 @@ contract VerifierZKTest is Test {
         ];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
-        
+
         console.log("Invalid public signal verification result:", result);
         assertFalse(result, "Proof with wrong public signal should be rejected");
     }
@@ -136,18 +132,16 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [
-            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
-        ];
+        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
 
         uint256 gasBefore = gasleft();
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
         uint256 gasAfter = gasleft();
-        
+
         uint256 gasUsed = gasBefore - gasAfter;
         console.log("Gas used for proof verification:", gasUsed);
         console.log("Verification result:", result);
-        
+
         // Assert reasonable gas usage (should be under 300k gas)
         assertTrue(gasUsed < 300000, "Gas usage should be reasonable");
         assertTrue(result, "Valid proof should be accepted");
@@ -156,7 +150,7 @@ contract VerifierZKTest is Test {
     function testVerifierConstants() public {
         // Test that the verifier contract was deployed correctly by checking some constants
         // This is more of a sanity check that the contract has the expected verification key
-        
+
         // We can't directly access the constants from outside, but we can test that
         // the contract exists and responds to calls
         uint256[2] memory pA = [uint256(1), uint256(2)];
@@ -181,7 +175,7 @@ contract VerifierZKTest is Test {
         uint256[1] memory pubSignals = [uint256(0)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
-        
+
         console.log("Zero proof verification result:", result);
         assertFalse(result, "All-zero proof should be rejected");
     }
@@ -191,7 +185,7 @@ contract VerifierZKTest is Test {
         // This test demonstrates how to use the exact calldata format you provided
         string memory calldataStr = "Your calldata format works correctly!";
         console.log(calldataStr);
-        
+
         // Run the actual verification
         uint256[2] memory pA = [
             uint256(0x2db585a6090266b7e2ac8e0e264bc1d66a2af45e662bb254d8902dae58676fc7),
@@ -214,13 +208,11 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [
-            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
-        ];
+        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
         console.log("Your calldata verification result:", result);
-        
+
         if (result) {
             console.log("SUCCESS: Your proof is VALID!");
         } else {

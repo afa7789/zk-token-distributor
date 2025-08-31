@@ -413,14 +413,9 @@ contract ZKTokenDistributorTest is Test {
     function test_Claim_WithRealCalldata() public {
         // Deploy with REAL VerifierZK contract instead of mock
         VerifierZK realVerifier = new VerifierZK();
-        
+
         ZKTokenDistributor realDistributor = new ZKTokenDistributor(
-            ROOT,
-            IERC20(address(token)),
-            address(realVerifier),
-            TOTAL_CLAIMABLE,
-            claimPeriodStart,
-            claimPeriodEnd
+            ROOT, IERC20(address(token)), address(realVerifier), TOTAL_CLAIMABLE, claimPeriodStart, claimPeriodEnd
         );
 
         // Transfer tokens to the real distributor
@@ -453,9 +448,7 @@ contract ZKTokenDistributorTest is Test {
         ];
 
         // Public signals - nullifierHash from your input.json
-        uint256[1] memory realPubSignals = [
-            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
-        ];
+        uint256[1] memory realPubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
 
         // Amount from your input.json - but let's use a smaller amount that fits in our test distributor
         // Original: 20000000000000000000000 (20,000 tokens)
@@ -476,7 +469,7 @@ contract ZKTokenDistributorTest is Test {
         vm.prank(user1);
         vm.expectEmit(true, false, false, true);
         emit Claimed(user1, realAmount);
-        
+
         realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
 
         console.log("User balance after:", token.balanceOf(user1));
@@ -484,18 +477,11 @@ contract ZKTokenDistributorTest is Test {
 
         // Assertions
         assertEq(token.balanceOf(user1), realAmount, "User should receive the claimed amount");
-        assertEq(
-            realDistributor.totalClaimable(), 
-            TOTAL_CLAIMABLE - realAmount, 
-            "Total claimable should be reduced"
-        );
-        
+        assertEq(realDistributor.totalClaimable(), TOTAL_CLAIMABLE - realAmount, "Total claimable should be reduced");
+
         // Check nullifier is used
         bytes32 nullifierHash = bytes32(realPubSignals[0]);
-        assertTrue(
-            realDistributor.usedNullifiers(nullifierHash), 
-            "Nullifier should be marked as used"
-        );
+        assertTrue(realDistributor.usedNullifiers(nullifierHash), "Nullifier should be marked as used");
 
         console.log("=== Real Calldata Test PASSED! ===");
     }
@@ -506,14 +492,9 @@ contract ZKTokenDistributorTest is Test {
     function test_Revert_When_RealCalldata_DoubleSpend() public {
         // Deploy with REAL VerifierZK contract
         VerifierZK realVerifier = new VerifierZK();
-        
+
         ZKTokenDistributor realDistributor = new ZKTokenDistributor(
-            ROOT,
-            IERC20(address(token)),
-            address(realVerifier),
-            TOTAL_CLAIMABLE,
-            claimPeriodStart,
-            claimPeriodEnd
+            ROOT, IERC20(address(token)), address(realVerifier), TOTAL_CLAIMABLE, claimPeriodStart, claimPeriodEnd
         );
 
         // Transfer tokens to the real distributor
@@ -545,9 +526,7 @@ contract ZKTokenDistributorTest is Test {
             0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
         ];
 
-        uint256[1] memory realPubSignals = [
-            uint256(0x0000000000000000000000000000000000000000000000000000000000000000)
-        ];
+        uint256[1] memory realPubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
 
         uint256 realAmount = 100000000000000000000; // 100 * 10^18 (reduced for test)
 
