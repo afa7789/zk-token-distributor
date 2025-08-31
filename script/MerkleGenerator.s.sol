@@ -1,9 +1,5 @@
 // DISCLAIMER: UNFORTUANLLY I THINK THIS IS NOT FEASIBLE IN FOUNDRY for matching values with circom we are using the script in circuits folder.
 // import "forge-std/Script.sol";
-import "poseidon-solidity/PoseidonT2.sol"; // Use T2 for two-input hashes
-import "poseidon-solidity/PoseidonT3.sol"; // Use T3 for two-input nullifier hash
-import "poseidon-solidity/PoseidonT4.sol"; // Use T4 for three-input hashes (leaf and node)X-License-Identifier: MIT
-
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
