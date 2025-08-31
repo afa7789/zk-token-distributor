@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
+import { ConnectKitButton } from 'connectkit';
 import { useClaimTokens } from '@/hooks/useClaimTokens';
 
 interface ParsedCalldata {
@@ -40,45 +41,14 @@ export default function ClaimPanel() {
       const cleaned = input.trim().replace(/\s+/g, '');
       
       // Expected format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signal1,signal2,...]
-      // We need to carefully parse this as it's not valid JSON
+      // Wrap in brackets to make it valid JSON array and parse
+      const calldataArray = JSON.parse('[' + cleaned + ']');
       
-      // Split by top-level commas, but respect nested arrays
-      const parts: string[] = [];
-      let current = '';
-      let depth = 0;
-      let inQuotes = false;
-      
-      for (let i = 0; i < cleaned.length; i++) {
-        const char = cleaned[i];
-        
-        if (char === '"' && cleaned[i-1] !== '\\') {
-          inQuotes = !inQuotes;
-        }
-        
-        if (!inQuotes) {
-          if (char === '[') depth++;
-          if (char === ']') depth--;
-          
-          if (char === ',' && depth === 0) {
-            parts.push(current);
-            current = '';
-            continue;
-          }
-        }
-        
-        current += char;
-      }
-      parts.push(current); // Add the last part
-      
-      if (parts.length !== 4) {
+      if (calldataArray.length !== 4) {
         throw new Error('Expected 4 parts: proof A, proof B, proof C, and public signals');
       }
       
-      // Parse each part as JSON
-      const proofA = JSON.parse(parts[0]);
-      const proofB = JSON.parse(parts[1]);
-      const proofC = JSON.parse(parts[2]);
-      const publicSignals = JSON.parse(parts[3]);
+      const [proofA, proofB, proofC, publicSignals] = calldataArray;
       
       return {
         proof: {
@@ -86,7 +56,7 @@ export default function ClaimPanel() {
           b: proofB,
           c: proofC
         },
-        publicSignals: [publicSignals[0]] // ClaimData expects tuple [string]
+        publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals]
       };
     } catch (err) {
       console.error('Parse error:', err);
@@ -191,9 +161,17 @@ export default function ClaimPanel() {
           </div>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-yellow-800">
-              🔗 Connect a wallet to submit your claim transaction
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-800 font-medium">
+                  🔗 Connect Wallet to Submit Claim
+                </p>
+                <p className="text-yellow-700 text-sm">
+                  Connect any wallet to submit your claim transaction
+                </p>
+              </div>
+              <ConnectKitButton />
+            </div>
           </div>
         )}
       </div>
