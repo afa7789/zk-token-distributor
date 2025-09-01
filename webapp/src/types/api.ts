@@ -49,7 +49,7 @@ export interface ClaimData {
     b: [[string, string], [string, string]];
     c: [string, string];
   };
-  publicSignals: [string];
+  publicSignals: [string, string, string]; // Updated: now 3 public signals [merkleRoot, nullifierHash, amount]
   amount: string;
 }
 

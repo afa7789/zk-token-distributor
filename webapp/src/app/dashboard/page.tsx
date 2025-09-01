@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import { useAccount, useBlockNumber, useBalance } from 'wagmi';
 import { ConnectKitButton } from 'connectkit';
 import { formatEther } from 'viem';
@@ -42,12 +43,12 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">📊 Dashboard</h1>
-            <a 
+            <Link 
               href="/" 
               className="bg-black border border-white text-white px-4 py-2 rounded-lg hover:bg-white hover:text-black transition-colors"
             >
               ← Home
-            </a>
+            </Link>
           </div>
 
           {/* Wallet Info */}

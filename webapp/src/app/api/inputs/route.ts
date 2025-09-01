@@ -10,6 +10,7 @@ interface UserData {
   amount: string;
   nullifier: string;
   siblings: string[];
+  amountInTokens?: string; // Added for compatibility
 }
 
 // Convert Ethereum address to the format used in inputs_circom.json
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Convert user's Ethereum address to decimal format
+    // Convert user's Ethereum address to decimal format for searching
     const userAddressDecimal = addressToDecimal(userAddress);
     
     // Read the inputs_circom.json file from the out directory
@@ -69,8 +70,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Format the data to ensure proper field element format and add token amount
+    const formatFieldElement = (value: string): string => BigInt(value).toString();
+    const formatTokenAmount = (amountWei: string): string => {
+      const tokens = BigInt(amountWei) / BigInt(10 ** 18);
+      return tokens.toString();
+    };
+
+    const formattedUserData = {
+      merkleRoot: formatFieldElement(userData.merkleRoot),
+      nullifierHash: formatFieldElement(userData.nullifierHash),
+      userAddress: formatFieldElement(userData.userAddress),
+      amount: formatFieldElement(userData.amount),
+      nullifier: formatFieldElement(userData.nullifier),
+      siblings: userData.siblings.map(s => formatFieldElement(s)),
+      amountInTokens: formatTokenAmount(userData.amount)
+    };
+
     // Return only the user's specific data
-    return NextResponse.json(userData);
+    return NextResponse.json(formattedUserData);
   } catch (error) {
     console.error('Error reading inputs file:', error);
     return NextResponse.json(

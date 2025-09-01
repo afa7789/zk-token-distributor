@@ -12,8 +12,8 @@ interface ParsedCalldata {
     b: [[string, string], [string, string]];
     c: [string, string];
   };
-  publicSignals: [string];
-  amount?: string; // Amount from calldata
+  publicSignals: [string, string, string]; // Updated: now 3 public signals [merkleRoot, nullifierHash, amount]
+  amount?: string; // Amount from calldata (for backward compatibility)
 }
 
 export default function ClaimPanel() {
@@ -44,7 +44,7 @@ export default function ClaimPanel() {
       
       console.log('Parsing calldata:', cleaned.substring(0, 100) + '...');
       
-      // Expected format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signal1,signal2,...],"amount"
+      // Expected format: ["a0","a1"],[["b00","b01"],["b10","b11"]],["c0","c1"],[signal1,signal2,signal3],"amount"
       // Wrap in brackets to make it valid JSON array and parse
       const calldataArray = JSON.parse('[' + cleaned + ']');
       
@@ -56,18 +56,10 @@ export default function ClaimPanel() {
         // New format with amount
         const [proofA, proofB, proofC, publicSignals, amount] = calldataArray;
         
-        return {
-          proof: {
-            a: proofA,
-            b: proofB,
-            c: proofC
-          },
-          publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals],
-          amount: amount
-        };
-      } else if (calldataArray.length === 4) {
-        // Old format without amount
-        const [proofA, proofB, proofC, publicSignals] = calldataArray;
+        // Validate public signals - should have exactly 3 elements
+        if (!Array.isArray(publicSignals) || publicSignals.length !== 3) {
+          throw new Error(`Expected 3 public signals, got ${Array.isArray(publicSignals) ? publicSignals.length : 'non-array'}`);
+        }
         
         return {
           proof: {
@@ -75,7 +67,40 @@ export default function ClaimPanel() {
             b: proofB,
             c: proofC
           },
-          publicSignals: Array.isArray(publicSignals) ? [publicSignals[0]] : [publicSignals]
+          publicSignals: [publicSignals[0], publicSignals[1], publicSignals[2]] as [string, string, string],
+          amount: amount
+        };
+      } else if (calldataArray.length === 4) {
+        // Old format without amount - try to extract amount from public signals if available
+        const [proofA, proofB, proofC, publicSignals] = calldataArray;
+        
+        let formattedPublicSignals: [string, string, string];
+        let extractedAmount: string | undefined;
+        
+        if (Array.isArray(publicSignals)) {
+          if (publicSignals.length === 3) {
+            // New circuit format with 3 signals: [merkleRoot, nullifierHash, amount]
+            formattedPublicSignals = [publicSignals[0], publicSignals[1], publicSignals[2]] as [string, string, string];
+            extractedAmount = publicSignals[2]; // amount is the 3rd signal
+          } else if (publicSignals.length === 1) {
+            // Old circuit format with 1 signal - pad with zeros for compatibility
+            formattedPublicSignals = [publicSignals[0], "0", "0"] as [string, string, string];
+          } else {
+            throw new Error(`Unexpected number of public signals: ${publicSignals.length}`);
+          }
+        } else {
+          // Single public signal - old format
+          formattedPublicSignals = [publicSignals, "0", "0"] as [string, string, string];
+        }
+        
+        return {
+          proof: {
+            a: proofA,
+            b: proofB,
+            c: proofC
+          },
+          publicSignals: formattedPublicSignals,
+          amount: extractedAmount
         };
       } else {
         throw new Error(`Expected 4 parts (old format) or 5 parts (new format with amount), got ${calldataArray.length} parts`);
@@ -118,8 +143,10 @@ export default function ClaimPanel() {
   const handleClaim = async () => {
     if (!parsedCalldata || !address) return;
 
-    // Check if we have the amount from calldata
-    if (!parsedCalldata.amount) {
+    // Try to get amount from calldata.amount or from the 3rd public signal
+    const amount = parsedCalldata.amount || parsedCalldata.publicSignals[2];
+    
+    if (!amount || amount === "0") {
       setError('No amount found in calldata. Please use calldata generated with the new format that includes the amount.');
       return;
     }
@@ -128,7 +155,7 @@ export default function ClaimPanel() {
       await submitClaim({
         proof: parsedCalldata.proof,
         publicSignals: parsedCalldata.publicSignals,
-        amount: parsedCalldata.amount
+        amount: amount
       });
     } catch (err) {
       // Error handling is now done in the useClaimTokens hook and displayed via TransactionStatus
@@ -248,11 +275,17 @@ export default function ClaimPanel() {
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-green-800 font-medium mb-2">
               ✅ Calldata parsed successfully!
-              {parsedCalldata.amount && (
-                <span className="ml-2 text-sm">
-                  (Amount: {(BigInt(parsedCalldata.amount) / BigInt(10**18)).toString()} tokens)
-                </span>
-              )}
+              {(() => {
+                const amount = parsedCalldata.amount || parsedCalldata.publicSignals[2];
+                if (amount && amount !== "0") {
+                  return (
+                    <span className="ml-2 text-sm">
+                      (Amount: {(BigInt(amount) / BigInt(10**18)).toString()} tokens)
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </p>
             <details className="text-sm">
               <summary className="cursor-pointer text-green-700 hover:text-green-900">
@@ -266,9 +299,19 @@ export default function ClaimPanel() {
                 ]</div>
                 <div><strong>Proof C:</strong> [{parsedCalldata.proof.c.join(', ')}]</div>
                 <div><strong>Public Signals:</strong> [{parsedCalldata.publicSignals.join(', ')}]</div>
+                <div><strong>Merkle Root:</strong> {parsedCalldata.publicSignals[0]}</div>
+                <div><strong>Nullifier Hash:</strong> {parsedCalldata.publicSignals[1]}</div>
+                <div><strong>Amount (wei):</strong> {parsedCalldata.publicSignals[2]}</div>
                 {parsedCalldata.amount && (
-                  <div><strong>Amount:</strong> {parsedCalldata.amount}</div>
+                  <div><strong>Amount (legacy):</strong> {parsedCalldata.amount}</div>
                 )}
+                {(() => {
+                  const amount = parsedCalldata.amount || parsedCalldata.publicSignals[2];
+                  if (amount && amount !== "0") {
+                    return <div><strong>Amount (tokens):</strong> {(BigInt(amount) / BigInt(10**18)).toString()}</div>;
+                  }
+                  return null;
+                })()}
               </div>
             </details>
           </div>
@@ -277,16 +320,21 @@ export default function ClaimPanel() {
         {/* Claim Button */}
         <button
           onClick={handleClaim}
-          disabled={!parsedCalldata || !isConnected || transactionState.isSubmitting || !parsedCalldata?.amount}
+          disabled={!parsedCalldata || !isConnected || transactionState.isSubmitting || (() => {
+            const amount = parsedCalldata?.amount || parsedCalldata?.publicSignals[2];
+            return !amount || amount === "0";
+          })()}
           className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {transactionState.isSubmitting ? (
             <>⏳ Submitting Claim...</>
-          ) : !parsedCalldata?.amount ? (
-            <>⚠️ Missing Amount (Use New Calldata Format)</>
-          ) : (
-            <>🎁 Claim Tokens</>
-          )}
+          ) : (() => {
+            const amount = parsedCalldata?.amount || parsedCalldata?.publicSignals[2];
+            if (!amount || amount === "0") {
+              return <>⚠️ Missing Amount (Use New Calldata Format)</>;
+            }
+            return <>🎁 Claim Tokens</>;
+          })()}
         </button>
 
         {/* Transaction Status */}
@@ -304,9 +352,15 @@ export default function ClaimPanel() {
         {/* Helper Text */}
         <p className="text-sm text-gray-600 text-center">
           💡 Need calldata? Generate it on the <a href="/calldata" className="text-blue-600 hover:text-blue-800 underline">Calldata page</a>
-          {!parsedCalldata?.amount && parsedCalldata && (
-            <><br/><span className="text-orange-600">⚠️ Your calldata is missing the amount. Please regenerate it with the latest format.</span></>
-          )}
+          {(() => {
+            const amount = parsedCalldata?.amount || parsedCalldata?.publicSignals[2];
+            if (parsedCalldata && (!amount || amount === "0")) {
+              return (
+                <><br/><span className="text-orange-600">⚠️ Your calldata is missing the amount. Please regenerate it with the latest format.</span></>
+              );
+            }
+            return null;
+          })()}
         </p>
       </div>
     </div>

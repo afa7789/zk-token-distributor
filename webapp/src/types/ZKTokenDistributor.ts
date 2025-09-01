@@ -75,8 +75,7 @@ export interface ZKTokenDistributorInterface extends Interface {
       [BigNumberish, BigNumberish],
       [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]],
       [BigNumberish, BigNumberish],
-      [BigNumberish],
-      BigNumberish
+      [BigNumberish, BigNumberish, BigNumberish]
     ]
   ): string;
   encodeFunctionData(
@@ -361,8 +360,7 @@ export interface ZKTokenDistributor extends BaseContract {
       _pA: [BigNumberish, BigNumberish],
       _pB: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]],
       _pC: [BigNumberish, BigNumberish],
-      _pubSignals: [BigNumberish],
-      _amount: BigNumberish
+      _pubSignals: [BigNumberish, BigNumberish, BigNumberish]
     ],
     [void],
     "nonpayable"
@@ -465,8 +463,7 @@ export interface ZKTokenDistributor extends BaseContract {
       _pA: [BigNumberish, BigNumberish],
       _pB: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]],
       _pC: [BigNumberish, BigNumberish],
-      _pubSignals: [BigNumberish],
-      _amount: BigNumberish
+      _pubSignals: [BigNumberish, BigNumberish, BigNumberish]
     ],
     [void],
     "nonpayable"

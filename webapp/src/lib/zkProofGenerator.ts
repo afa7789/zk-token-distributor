@@ -17,7 +17,7 @@ export interface ZKProof {
 
 export interface ZKProofData {
   proof: ZKProof;
-  publicSignals: [string];
+  publicSignals: [string, string, string]; // Updated: now 3 public signals [merkleRoot, nullifierHash, amount]
 }
 
 // Ensure proper field element format for circom
@@ -38,9 +38,18 @@ export class ZKProofGenerator {
 
   async generateProof(inputs: ZKProofInputs): Promise<ZKProofData> {
     try {
-      // Prepare circuit inputs in the format expected by circom
+      console.log('🔄 Starting ZK proof generation...');
+      console.log('📊 Input data:', {
+        merkleRoot: inputs.merkleRoot,
+        nullifierHash: inputs.nullifierHash,
+        amount: inputs.amount,
+        userAddress: inputs.userAddress,
+        siblingsCount: inputs.siblings.length
+      });
+
+      // Prepare circuit inputs in the format expected by the new circom circuit
       const circuitInputs = {
-        root: formatFieldElement(inputs.merkleRoot),
+        merkleRoot: formatFieldElement(inputs.merkleRoot),
         nullifierHash: formatFieldElement(inputs.nullifierHash),
         userAddress: formatFieldElement(inputs.userAddress),
         amount: formatFieldElement(inputs.amount),
@@ -48,7 +57,7 @@ export class ZKProofGenerator {
         siblings: inputs.siblings.map(formatFieldElement),
       };
 
-      console.log('Generating ZK proof with inputs:', circuitInputs);
+      console.log('🔧 Formatted circuit inputs:', circuitInputs);
 
       // Generate the proof using snarkjs
       const { proof, publicSignals } = await snarkjs.groth16.fullProve(
@@ -57,8 +66,13 @@ export class ZKProofGenerator {
         this.zkeyUrl
       );
 
-      console.log('Generated proof:', proof);
-      console.log('Public signals:', publicSignals);
+      console.log('✅ Generated proof:', proof);
+      console.log('📋 Public signals:', publicSignals);
+
+      // Validate that we have exactly 3 public signals
+      if (!publicSignals || publicSignals.length !== 3) {
+        throw new Error(`Expected 3 public signals, got ${publicSignals?.length || 0}`);
+      }
 
       // Format proof for Solidity verifier
       const formattedProof: ZKProof = {
@@ -69,10 +83,10 @@ export class ZKProofGenerator {
 
       return {
         proof: formattedProof,
-        publicSignals: [publicSignals[0]] as [string]
+        publicSignals: [publicSignals[0], publicSignals[1], publicSignals[2]] as [string, string, string]
       };
     } catch (error) {
-      console.error('ZK proof generation failed:', error);
+      console.error('❌ ZK proof generation failed:', error);
       throw new Error(`Failed to generate ZK proof: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -82,6 +96,12 @@ export class ZKProofGenerator {
       // Load verification key
       const vKeyResponse = await fetch(this.verificationKeyUrl);
       const vKey = await vKeyResponse.json();
+
+      // Validate public signals count
+      if (publicSignals.length !== 3) {
+        console.error(`Expected 3 public signals, got ${publicSignals.length}`);
+        return false;
+      }
 
       // Format proof for verification
       const proof = {
@@ -93,11 +113,11 @@ export class ZKProofGenerator {
       };
 
       const result = await snarkjs.groth16.verify(vKey, publicSignals, proof);
-      console.log('Proof verification result:', result);
+      console.log('🔍 Proof verification result:', result);
       
       return result;
     } catch (error) {
-      console.error('ZK proof verification failed:', error);
+      console.error('❌ ZK proof verification failed:', error);
       return false;
     }
   }

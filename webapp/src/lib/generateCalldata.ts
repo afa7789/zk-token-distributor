@@ -22,7 +22,7 @@ interface SMTResults {
 
 /**
  * UserCalldata interface matching exactly what the circuit needs for proof generation.
- * Based on airdrop_smt.circom inputs and snarkjs requirements.
+ * Updated for the new circuit with 3 outputs: merkleRootOut, nullifierHashOut, amountOut
  */
 interface UserCalldata {
   // Circuit inputs (matching input.json structure)
@@ -121,21 +121,37 @@ export class CalldataGenerator {
     console.log(`\nCalldata files generated in: ${this.outputDir}/`);
   }
 
+  /**
+   * Ensures proper field element format for circom (BigInt conversion)
+   */
+  private formatFieldElement(value: string): string {
+    return BigInt(value).toString();
+  }
+
+  /**
+   * Converts amount from wei to tokens for display
+   */
+  private formatTokenAmount(amountWei: string): string {
+    const tokens = BigInt(amountWei) / BigInt(10 ** 18);
+    return tokens.toString();
+  }
+
+  /**
+   * Generate calldata for a specific user leaf
+   */
   private generateUserCalldata(leaf: SMTLeaf): UserCalldata {
     if (!this.smtResults) {
       throw new Error('SMT results not loaded');
     }
 
-    const amountInTokens = (BigInt(leaf.value) / BigInt(10 ** 18)).toString();
-
     return {
-      merkleRoot: this.smtResults.smtRoot,
-      nullifierHash: leaf.nullifierHash,
-      userAddress: leaf.key,
-      amount: leaf.value,
-      nullifier: leaf.nullifier,
-      siblings: leaf.siblings,
-      amountInTokens
+      merkleRoot: this.formatFieldElement(this.smtResults.smtRoot),
+      nullifierHash: this.formatFieldElement(leaf.nullifierHash),
+      userAddress: this.formatFieldElement(leaf.keyUint),
+      amount: this.formatFieldElement(leaf.value),
+      nullifier: this.formatFieldElement(leaf.nullifier),
+      siblings: leaf.siblings.map(s => this.formatFieldElement(s)),
+      amountInTokens: this.formatTokenAmount(leaf.value)
     };
   }
 
@@ -153,16 +169,20 @@ export class CalldataGenerator {
         return null;
       }
 
-      const amountInTokens = (BigInt(userLeaf.value) / BigInt(10 ** 18)).toString();
+      const formatFieldElement = (value: string): string => BigInt(value).toString();
+      const formatTokenAmount = (amountWei: string): string => {
+        const tokens = BigInt(amountWei) / BigInt(10 ** 18);
+        return tokens.toString();
+      };
 
       return {
-        merkleRoot: smtResults.smtRoot,
-        nullifierHash: userLeaf.nullifierHash,
-        userAddress: userLeaf.key,
-        amount: userLeaf.value,
-        nullifier: userLeaf.nullifier,
-        siblings: userLeaf.siblings,
-        amountInTokens
+        merkleRoot: formatFieldElement(smtResults.smtRoot),
+        nullifierHash: formatFieldElement(userLeaf.nullifierHash),
+        userAddress: formatFieldElement(userLeaf.keyUint),
+        amount: formatFieldElement(userLeaf.value),
+        nullifier: formatFieldElement(userLeaf.nullifier),
+        siblings: userLeaf.siblings.map(s => formatFieldElement(s)),
+        amountInTokens: formatTokenAmount(userLeaf.value)
       };
     } catch (error) {
       console.error('Error generating user calldata:', error);

@@ -49,13 +49,25 @@ export const useClaimTokens = () => {
 
     try {
       // Prepare contract arguments - convert strings to bigints
+      // The new contract expects 3 public signals: [merkleRoot, nullifierHash, amount]
       const args = [
         [BigInt(claimData.proof.a[0]), BigInt(claimData.proof.a[1])],
         [[BigInt(claimData.proof.b[0][0]), BigInt(claimData.proof.b[0][1])], [BigInt(claimData.proof.b[1][0]), BigInt(claimData.proof.b[1][1])]],
         [BigInt(claimData.proof.c[0]), BigInt(claimData.proof.c[1])],
-        [BigInt(claimData.publicSignals[0])],
-        BigInt(claimData.amount),
+        [BigInt(claimData.publicSignals[0]), BigInt(claimData.publicSignals[1]), BigInt(claimData.publicSignals[2])],
       ] as const;
+
+      console.log('🔄 Submitting claim with args:', {
+        proof: {
+          a: args[0],
+          b: args[1],
+          c: args[2]
+        },
+        publicSignals: args[3],
+        merkleRoot: claimData.publicSignals[0],
+        nullifierHash: claimData.publicSignals[1], 
+        amount: claimData.publicSignals[2]
+      });
 
       writeContract({
         address: distributorAddress as `0x${string}`,
