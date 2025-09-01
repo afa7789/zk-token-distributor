@@ -195,8 +195,8 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
         uint256[3] calldata _pubSignals
     ) internal {
         // Extract nullifier hash from public signals
-        bytes32 nullifierHash = bytes32(_pubSignals[0]);
-        uint256 providedAmount = _pubSignals[2];
+        bytes32 nullifierHash = bytes32(_pubSignals[1]); // nullifierHashOut is at index 1
+        uint256 providedAmount = _pubSignals[2]; // amountOut is at index 2
 
         uint256 _amount = providedAmount;
 

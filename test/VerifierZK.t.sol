@@ -37,7 +37,7 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0x0000000000000000000000000000000000000000000000000000000000000000), uint256(100 * 10**18)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
 
@@ -68,7 +68,7 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0x0000000000000000000000000000000000000000000000000000000000000000), uint256(100 * 10**18)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
 
@@ -99,8 +99,10 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [
-            uint256(0x1234567890123456789012345678901234567890123456789012345678901234) // Changed public signal
+        uint256[3] memory pubSignals = [
+            uint256(0x1e), // merkleRoot
+            uint256(0x1234567890123456789012345678901234567890123456789012345678901234), // Changed nullifierHash
+            uint256(100 * 10**18) // amount
         ];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
@@ -132,7 +134,7 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0x0000000000000000000000000000000000000000000000000000000000000000), uint256(100 * 10**18)];
 
         uint256 gasBefore = gasleft();
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
@@ -156,7 +158,7 @@ contract VerifierZKTest is Test {
         uint256[2] memory pA = [uint256(1), uint256(2)];
         uint256[2][2] memory pB = [[uint256(1), uint256(2)], [uint256(3), uint256(4)]];
         uint256[2] memory pC = [uint256(1), uint256(2)];
-        uint256[1] memory pubSignals = [uint256(0)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0), uint256(100 * 10**18)];
 
         // This should not revert (even if it returns false)
         try verifier.verifyProof(pA, pB, pC, pubSignals) returns (bool result) {
@@ -172,7 +174,7 @@ contract VerifierZKTest is Test {
         uint256[2] memory pA = [uint256(0), uint256(0)];
         uint256[2][2] memory pB = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
         uint256[2] memory pC = [uint256(0), uint256(0)];
-        uint256[1] memory pubSignals = [uint256(0)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0), uint256(100 * 10**18)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
 
@@ -208,7 +210,7 @@ contract VerifierZKTest is Test {
             uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
         ];
 
-        uint256[1] memory pubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0x0000000000000000000000000000000000000000000000000000000000000000), uint256(100 * 10**18)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
         console.log("Your calldata verification result:", result);

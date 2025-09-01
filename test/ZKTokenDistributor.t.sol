@@ -12,7 +12,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockVerifierZK {
     bool public shouldReturnTrue = true;
 
-    function verifyProof(uint256[2] calldata, uint256[2][2] calldata, uint256[2] calldata, uint256[1] calldata)
+    function verifyProof(uint256[2] calldata, uint256[2][2] calldata, uint256[2] calldata, uint256[3] calldata)
         external
         view
         returns (bool)
@@ -135,7 +135,7 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals = [uint256(nullifierHash)];
+        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
 
         uint256 userBalanceBefore = token.balanceOf(user1);
         uint256 distributorBalanceBefore = token.balanceOf(address(distributor));
@@ -145,7 +145,7 @@ contract ZKTokenDistributorTest is Test {
         emit Claimed(user1, claimAmount);
 
         vm.prank(user1);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
 
         assertEq(token.balanceOf(user1), userBalanceBefore + claimAmount, "User balance should increase");
         assertEq(
@@ -162,11 +162,11 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals = [uint256(nullifierHash)];
+        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_ClaimPeriodNotStarted.selector);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
     }
 
     function test_Revert_When_ClaimPeriodEnded() public {
@@ -174,22 +174,22 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals = [uint256(nullifierHash)];
+        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_ClaimPeriodEnded.selector);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
     }
 
     function test_Revert_When_ZeroAmount() public {
         vm.warp(claimPeriodStart + 1);
 
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals = [uint256(nullifierHash)];
+        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), 0];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_ZeroAmount.selector);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, 0);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
     }
 
     function test_Revert_When_NullifierAlreadyUsed() public {
@@ -197,16 +197,16 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals = [uint256(nullifierHash)];
+        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
 
         // First claim should succeed
         vm.prank(user1);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
 
         // Second claim with same nullifier should fail
         vm.prank(user2);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_NullifierAlreadyUsed.selector);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
     }
 
     function test_Revert_When_ZKProofFails() public {
@@ -217,11 +217,11 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals = [uint256(nullifierHash)];
+        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_FailedZKProofVerify.selector);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals);
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -382,17 +382,17 @@ contract ZKTokenDistributorTest is Test {
 
         // User1 claims with nullifier1
         bytes32 nullifierHash1 = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[1] memory pubSignals1 = [uint256(nullifierHash1)];
+        uint256[3] memory pubSignals1 = [uint256(ROOT), uint256(nullifierHash1), claimAmount];
 
         vm.prank(user1);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals1, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals1);
 
         // User2 claims with nullifier2
         bytes32 nullifierHash2 = keccak256(abi.encodePacked(user2, "secret2"));
-        uint256[1] memory pubSignals2 = [uint256(nullifierHash2)];
+        uint256[3] memory pubSignals2 = [uint256(ROOT), uint256(nullifierHash2), claimAmount];
 
         vm.prank(user2);
-        distributor.claim(mockPa, mockPb, mockPc, pubSignals2, claimAmount);
+        distributor.claim(mockPa, mockPb, mockPc, pubSignals2);
 
         assertEq(token.balanceOf(user1), claimAmount, "User1 should have claimed tokens");
         assertEq(token.balanceOf(user2), claimAmount, "User2 should have claimed tokens");
@@ -447,8 +447,12 @@ contract ZKTokenDistributorTest is Test {
             0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
         ];
 
-        // Public signals - nullifierHash from your input.json
-        uint256[1] memory realPubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
+        // Public signals - merkleRoot, nullifierHash, amount from your input.json
+        uint256[3] memory realPubSignals = [
+            uint256(13763994578979737936036119000820792920694940750709564931223618131771408016192), // merkleRoot
+            uint256(16424976203406758828432693063983732784626058622955635942692915795090183598965), // nullifierHash
+            uint256(20000000000000000000000) // amount from input.json
+        ];
 
         // Amount from your input.json - but let's use a smaller amount that fits in our test distributor
         // Original: 20000000000000000000000 (20,000 tokens)
@@ -470,7 +474,7 @@ contract ZKTokenDistributorTest is Test {
         vm.expectEmit(true, false, false, true);
         emit Claimed(user1, realAmount);
 
-        realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
+        realDistributor.claim(realPa, realPb, realPc, realPubSignals);
 
         console.log("User balance after:", token.balanceOf(user1));
         console.log("Distributor balance after:", token.balanceOf(address(realDistributor)));
@@ -480,7 +484,7 @@ contract ZKTokenDistributorTest is Test {
         assertEq(realDistributor.totalClaimable(), TOTAL_CLAIMABLE - realAmount, "Total claimable should be reduced");
 
         // Check nullifier is used
-        bytes32 nullifierHash = bytes32(realPubSignals[0]);
+        bytes32 nullifierHash = bytes32(realPubSignals[1]); // nullifierHash is now index 1
         assertTrue(realDistributor.usedNullifiers(nullifierHash), "Nullifier should be marked as used");
 
         console.log("=== Real Calldata Test PASSED! ===");
@@ -526,18 +530,22 @@ contract ZKTokenDistributorTest is Test {
             0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
         ];
 
-        uint256[1] memory realPubSignals = [uint256(0x0000000000000000000000000000000000000000000000000000000000000000)];
+        uint256[3] memory realPubSignals = [
+            uint256(13763994578979737936036119000820792920694940750709564931223618131771408016192), // merkleRoot
+            uint256(16424976203406758828432693063983732784626058622955635942692915795090183598965), // nullifierHash
+            uint256(100000000000000000000) // 100 tokens for test
+        ];
 
         uint256 realAmount = 100000000000000000000; // 100 * 10^18 (reduced for test)
 
         // First claim should succeed
         vm.prank(user1);
-        realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
+        realDistributor.claim(realPa, realPb, realPc, realPubSignals);
 
         // Second claim with same nullifier should fail
         vm.prank(user2); // Different user but same nullifier
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_NullifierAlreadyUsed.selector);
-        realDistributor.claim(realPa, realPb, realPc, realPubSignals, realAmount);
+        realDistributor.claim(realPa, realPb, realPc, realPubSignals);
 
         console.log("Double spend protection works correctly!");
     }
