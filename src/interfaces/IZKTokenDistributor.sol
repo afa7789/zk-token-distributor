@@ -12,6 +12,7 @@ interface IZKTokenDistributor {
     error InvalidAmount();
     error InvalidAddress();
     error InvalidTimestamp();
+    error InvalidMerkleRoot();
     error ClaimPeriodInvalid();
     error TokenDistributor_ClaimPeriodNotStarted();
     error TokenDistributor_ClaimPeriodEnded();
@@ -27,8 +28,7 @@ interface IZKTokenDistributor {
         uint256[2] calldata _pA,
         uint256[2][2] calldata _pB,
         uint256[2] calldata _pC,
-        uint256[1] calldata _pubSignals,
-        uint256 _amount
+        uint256[3] calldata _pubSignals
     ) external;
 
     function sweep(address _sweepReceiver) external;

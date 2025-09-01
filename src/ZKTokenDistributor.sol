@@ -100,16 +100,14 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
      * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals (should include nullifierHash)
-     * @param _amount Amount to claim
      */
     function claim(
         uint256[2] calldata _pA,
         uint256[2][2] calldata _pB,
         uint256[2] calldata _pC,
-        uint256[1] calldata _pubSignals,
-        uint256 _amount
+        uint256[3] calldata _pubSignals
     ) external {
-        _claim(_pA, _pB, _pC, _pubSignals, _amount);
+        _claim(_pA, _pB, _pC, _pubSignals);
     }
 
     /**
@@ -189,20 +187,21 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
      * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals (should include nullifierHash)
-     * @param _amount Amount to claim
      */
     function _claim(
         uint256[2] calldata _pA,
         uint256[2][2] calldata _pB,
         uint256[2] calldata _pC,
-        uint256[1] calldata _pubSignals,
-        uint256 _amount
+        uint256[3] calldata _pubSignals
     ) internal {
         // Extract nullifier hash from public signals
         bytes32 nullifierHash = bytes32(_pubSignals[0]);
+        uint256 providedAmount = _pubSignals[2];
+
+        uint256 _amount = providedAmount;
 
         // Validate claim with ZK proof
-        _validateClaim(_pA, _pB, _pC, _pubSignals, _amount);
+        _validateClaim(_pA, _pB, _pC, _pubSignals);
 
         // Mark nullifier as used (prevents double-spending)
         usedNullifiers[nullifierHash] = true;
@@ -230,21 +229,24 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
      * @param _pB Groth16 proof point B
      * @param _pC Groth16 proof point C
      * @param _pubSignals Public signals (should include nullifierHash)
-     * @param _amount Claim amount
      */
     function _validateClaim(
         uint256[2] calldata _pA,
         uint256[2][2] calldata _pB,
         uint256[2] calldata _pC,
-        uint256[1] calldata _pubSignals,
-        uint256 _amount
+        uint256[3] calldata _pubSignals
     ) internal view {
         // Extract nullifier hash from public signals
-        bytes32 nullifierHash = bytes32(_pubSignals[0]);
+        bytes32 providedMerkleRoot = bytes32(_pubSignals[0]);
+        bytes32 nullifierHash = bytes32(_pubSignals[1]);
+        uint256 providedAmount = _pubSignals[2];
+
+        if (providedMerkleRoot != root) revert InvalidMerkleRoot();
+
         // Validate basic conditions
         if (block.timestamp < claimPeriodStart) revert TokenDistributor_ClaimPeriodNotStarted();
         if (block.timestamp > claimPeriodEnd) revert TokenDistributor_ClaimPeriodEnded();
-        if (_amount == 0) revert TokenDistributor_ZeroAmount();
+        if (providedAmount == 0) revert TokenDistributor_ZeroAmount();
         // Check if nullifier was already used (prevents double-spending)
         if (usedNullifiers[nullifierHash]) revert TokenDistributor_NullifierAlreadyUsed();
         // Verify ZK proof
@@ -263,7 +265,7 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
         uint256[2] calldata _pA,
         uint256[2][2] calldata _pB,
         uint256[2] calldata _pC,
-        uint256[1] calldata _pubSignals
+        uint256[3] calldata _pubSignals
     ) internal view returns (bool _valid) {
         return verifier.verifyProof(_pA, _pB, _pC, _pubSignals);
     }
