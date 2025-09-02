@@ -47,9 +47,9 @@ class SparseMerkleTree {
             return leafHash;
         }
 
-        // Obtém o bit neste nível (MSB primeiro)
-        const bitIndex = level - 1;
-    const goRight = ((key >> BigInt(bitIndex)) & 1n) === 1n;
+        // FIXED: Usa LSB first (bit 0 = LSB) para compatibilidade com Circom
+        const bitIndex = this.levels - level; // Para 5 níveis: level 5->bit 0, level 4->bit 1, etc.
+        const goRight = ((key >> BigInt(bitIndex)) & 1n) === 1n;
 
         let node = { left: this.EMPTY_NODE_HASH, right: this.EMPTY_NODE_HASH };
         if (nodeHash !== this.EMPTY_NODE_HASH && this.nodes.has(nodeHash.toString())) {
@@ -75,7 +75,9 @@ class SparseMerkleTree {
         let currentHash = this.root;
 
         for (let i = 0; i < this.levels; i++) {
-            const bitIndex = this.levels - 1 - i;
+            // FIXED: Usa LSB first para compatibilidade com Circom
+            // bitIndex = i -> depth 0 uses bit 0 (LSB), depth 1 uses bit 1, etc.
+            const bitIndex = i;
             const goRight = ((keyBigInt >> BigInt(bitIndex)) & 1n) === 1n;
 
             if (currentHash === this.EMPTY_NODE_HASH) {
@@ -97,6 +99,7 @@ class SparseMerkleTree {
             }
         }
 
+        // FIXED: Remove a inversão - agora os siblings já estão na ordem correta
         return proof;
     }
 
@@ -107,7 +110,9 @@ class SparseMerkleTree {
         let computedHash = this.calculateLeafHash(keyBigInt, valueBigInt);
 
         for (let i = 0; i < proof.length; i++) {
-            const bitIndex = this.levels - 1 - i;
+            // FIXED: Usa LSB first
+            // Use same indexing as insertRecursive (depth i -> bit i)
+            const bitIndex = i;
             const goRight = ((keyBigInt >> BigInt(bitIndex)) & 1n) === 1n;
 
             if (goRight) {
@@ -168,7 +173,7 @@ function generateNullifierHash(address, nullifier) {
 }
 
 async function main() {
-    console.log('\n--- Sparse Merkle Tree Generator para Circom ---');
+    console.log('\n--- Sparse Merkle Tree Generator para Circom (FIXED LSB-first) ---');
     
     // Configuração
     const TREE_LEVELS = 5;
@@ -287,8 +292,8 @@ async function main() {
     }
     
     // Escreve resultados nos arquivos
-    const resultsPath = path.join(OUTPUT_DIR, 'smt_results_2.json');
-    const circomInputsPath = path.join(OUTPUT_DIR, 'inputs_circom_2.json');
+    const resultsPath = path.join(OUTPUT_DIR, 'smt_results_fixed.json');
+    const circomInputsPath = path.join(OUTPUT_DIR, 'inputs_circom_fixed.json');
     
     fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
     fs.writeFileSync(circomInputsPath, JSON.stringify(circomInputs, null, 2));

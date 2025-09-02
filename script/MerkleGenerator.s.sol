@@ -1,5 +1,4 @@
-// DISCLAIMER: UNFORTUANLLY I THINK THIS IS NOT FEASIBLE IN FOUNDRY for matching values with circom we are using the script in circuits folder.
-// import "forge-std/Script.sol";
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
@@ -10,6 +9,7 @@ import "poseidon-solidity/PoseidonT4.sol"; // Use T4 for three-input hashes
 /**
  * @title SMT Generator Script
  * @dev Generates a Sparse Merkle Tree compatible with Circom circuits
+ * @notice FIXED: Now uses LSB-first bit ordering to match generator_merkle_tree2.js
  *
  * SMT Key Differences:
  * - Fixed height (e.g., 20 levels)
@@ -167,8 +167,8 @@ contract SMTGeneratorScript is Script {
             return leafHash;
         }
 
-        // Get the bit at this level (MSB first)
-        uint256 bitIndex = level - 1;
+        // Get the bit at this level (LSB first - FIXED to match generator)
+        uint256 bitIndex = TREE_LEVELS - level;
         bool goRight = (key >> bitIndex) & 1 == 1;
 
         SMTNode memory node;
@@ -219,6 +219,7 @@ contract SMTGeneratorScript is Script {
             }
         }
 
+        // FIXED: Remove proof reversal to match generator (no longer needed)
         return proof;
     }
 
@@ -242,6 +243,7 @@ contract SMTGeneratorScript is Script {
         bytes32 computedHash = calculateLeafHash(keyUint, value);
 
         for (uint256 i = 0; i < proof.length; i++) {
+            // FIXED: Use LSB-first bit ordering to match insertion
             uint256 bitIndex = TREE_LEVELS - 1 - i;
             bool goRight = (keyUint >> bitIndex) & 1 == 1;
 
@@ -266,6 +268,7 @@ contract SMTGeneratorScript is Script {
         bytes32 computedHash = EMPTY_NODE_HASH; // Start with empty leaf
 
         for (uint256 i = 0; i < proof.length; i++) {
+            // FIXED: Use LSB-first bit ordering to match insertion
             uint256 bitIndex = TREE_LEVELS - 1 - i;
             bool goRight = (keyUint >> bitIndex) & 1 == 1;
 

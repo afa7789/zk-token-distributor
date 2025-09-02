@@ -35,11 +35,18 @@ template AirdropInclusionOnly(levels) {
     component nullifierCheck = IsEqual();
     nullifierCheck.in[0] <== nullifierHash;
     nullifierCheck.in[1] <== nullifierHasher.out;
+    
+    log("Expected nullifierHash:", nullifierHash);
+    log("Computed nullifierHash:", nullifierHasher.out);
+    log("nullifierCheck result:", nullifierCheck.out);
 
     // 2. Verificação de que o valor é não-zero
     component amountCheck = IsZero();
     amountCheck.in <== amount;
     signal amountNonZero <== 1 - amountCheck.out;
+    
+    log("Amount:", amount);
+    log("amountNonZero result:", amountNonZero);
 
     // 3. Criação do hash da folha para a SMT
     component leafHash = SMTHash1();
@@ -72,12 +79,18 @@ template AirdropInclusionOnly(levels) {
     component rootCheck = IsEqual();
     rootCheck.in[0] <== currentHash[0];
     rootCheck.in[1] <== merkleRoot;
+    
+    log("Computed merkleRoot:", currentHash[0]);
+    log("Expected merkleRoot:", merkleRoot);
+    log("rootCheck result:", rootCheck.out);
 
     // Usando restrições para garantir as verificações sem uma saída 'valid'
-     // Fix for the non-quadratic constraint error
+    // Fix for the non-quadratic constraint error
     
     // 1. Multiply the first two validation results
     signal temp <== nullifierCheck.out * amountNonZero;
+
+    log("temp (nullifierCheck * amountNonZero):", temp);
     
     // 2. Multiply the result with the third validation
     temp * rootCheck.out === 1;
