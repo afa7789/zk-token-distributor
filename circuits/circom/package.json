@@ -1,9 +1,33 @@
 {
-  "dependencies": {
-    "circomlib": "^2.0.5",
-    "circomlibjs": "^0.1.7"
-  },
   "name": "circom",
   "version": "1.0.0",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.2",
+    "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "jest": {
+    "preset": "default",
+    "testEnvironment": "node",
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"],
+    "globals": {
+      "jest": {
+        "useESM": true
+      }
+    }
+  }
 }
