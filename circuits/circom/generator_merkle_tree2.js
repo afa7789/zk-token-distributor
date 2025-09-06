@@ -2,18 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// Usa poseidon-lite que exporta funções separadas por aridade
-let poseidon2;
-let poseidon3;
-try {
-    const poseidonLite = require('poseidon-lite');
-    poseidon2 = poseidonLite.poseidon2;
-    poseidon3 = poseidonLite.poseidon3;
-} catch (e) {
-    console.error('Erro: poseidon-lite não encontrado.');
-    console.error('Instale com: npm install poseidon-lite');
-    process.exit(1);
-}
+
+const circomlibjs = require('circomlibjs');
+let poseidon, smtHash1, smtHash2, poseidonReady = false;
+
+(async () => {
+    poseidon = await circomlibjs.buildPoseidon();
+    smtHash1 = circomlibjs.smtHash1(poseidon);
+    smtHash2 = circomlibjs.smtHash2(poseidon);
+    poseidonReady = true;
+    if (require.main === module) {
+        main().catch(console.error);
+    }
+})();
 
 class SparseMerkleTree {
     constructor(levels) {
@@ -23,14 +24,16 @@ class SparseMerkleTree {
         this.EMPTY_NODE_HASH = 0n;
     }
 
-    // SMTHash1: Poseidon(key, value, 1) - para leaf hash
+    // SMTHash1: usa circomlibjs.smtHash1
     calculateLeafHash(key, value) {
-        return poseidon3([key.toString(), value.toString(), '1']);
+        if (!poseidonReady) throw new Error('Poseidon not ready');
+        return smtHash1(key, value);
     }
 
-    // SMTHash2: Poseidon(left, right, 0) - para internal node hash
+    // SMTHash2: usa circomlibjs.smtHash2
     hashNode(left, right) {
-        return poseidon3([left.toString(), right.toString(), '0']);
+        if (!poseidonReady) throw new Error('Poseidon not ready');
+        return smtHash2(left, right);
     }
 
     // Insere um par key-value na SMT
@@ -166,10 +169,12 @@ function generateNullifier(address, secret = "secret") {
     return BigInt('0x' + result.slice(0, 62)); // Trunca para field element
 }
 
-// Gera nullifier hash usando Poseidon(userAddress, nullifier)
+// Gera nullifier hash usando Poseidon(userAddress, nullifier) (compatível com Circom)
 function generateNullifierHash(address, nullifier) {
+    if (!poseidonReady) throw new Error('Poseidon not ready');
     const key = addressToBigInt(address);
-    return poseidon2([key.toString(), nullifier.toString()]);
+    // Poseidon([userAddress, nullifier])
+    return BigInt(poseidon.F.toString(poseidon([key, nullifier])));
 }
 
 async function main() {
