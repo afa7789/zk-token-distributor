@@ -6,7 +6,7 @@ import "forge-std/Script.sol";
 /**
  * @title SMT Generator Script
  * @dev Generates a Sparse Merkle Tree compatible with Circom circuits
- * @notice FIXED: Now uses LSB-first bit ordering to match generator_merkle_tree2.js
+ * @notice FIXED: Now uses LSB-first it ordering to match generator_merkle_tree2.js
  *
  * SMT Key Differences:
  * - Fixed height (e.g., 20 levels)
@@ -286,7 +286,7 @@ contract SMTGeneratorScript is Script {
      */
     // SMTHash1: chama poseidon3.js com tipo 'hash1' (circomlibjs)
     function calculateLeafHash(uint256 key, uint256 value) internal returns (bytes32) {
-        string[] memory args = new string[](4);
+        string[] memory args = new string[](5);
         args[0] = "bun";
         args[1] = "script/poseidon3.js";
         args[2] = vm.toString(key);
@@ -303,7 +303,7 @@ contract SMTGeneratorScript is Script {
      */
     // SMTHash2: chama poseidon3.js com tipo 'hash0' (circomlibjs)
     function hashNode(bytes32 left, bytes32 right) internal returns (bytes32) {
-        string[] memory args = new string[](4);
+        string[] memory args = new string[](5);
         args[0] = "bun";
         args[1] = "script/poseidon3.js";
         args[2] = vm.toString(uint256(left));
