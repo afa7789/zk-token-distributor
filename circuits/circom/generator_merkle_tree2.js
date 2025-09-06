@@ -4,19 +4,26 @@ const crypto = require('crypto');
 
 
 const circomlibjs = require('circomlibjs');
-let poseidon, smtHash1, smtHash2, poseidonReady = false;
+let hashes, poseidonReady = false;
 
-(async () => {
-    poseidon = await circomlibjs.buildPoseidon();
-    smtHash1 = circomlibjs.smtHash1(poseidon);
-    smtHash2 = circomlibjs.smtHash2(poseidon);
-    poseidonReady = true;
-    if (require.main === module) {
-        main().catch(console.error);
+// Cria as funções hash usando o módulo local do circomlibjs
+async function initializeHashes() {
+    try {
+        // Importa diretamente do node_modules local
+        const getHashes = (await import('./node_modules/circomlibjs/src/smt_hashes_poseidon.js')).default;
+        hashes = await getHashes();
+        poseidonReady = true;
+        
+        if (require.main === module) {
+            main().catch(console.error);
+        }
+    } catch (error) {
+        console.error('Erro ao inicializar hashes:', error);
+        process.exit(1);
     }
-})();
+}
 
-class SparseMerkleTree {
+initializeHashes();class SparseMerkleTree {
     constructor(levels) {
         this.levels = levels;
         this.nodes = new Map();
@@ -24,16 +31,16 @@ class SparseMerkleTree {
         this.EMPTY_NODE_HASH = 0n;
     }
 
-    // SMTHash1: usa circomlibjs.smtHash1
+    // SMTHash1: usa hash1 do circomlibjs
     calculateLeafHash(key, value) {
         if (!poseidonReady) throw new Error('Poseidon not ready');
-        return smtHash1(key, value);
+        return BigInt(hashes.F.toString(hashes.hash1(key, value)));
     }
 
-    // SMTHash2: usa circomlibjs.smtHash2
+    // SMTHash2: usa hash0 do circomlibjs
     hashNode(left, right) {
         if (!poseidonReady) throw new Error('Poseidon not ready');
-        return smtHash2(left, right);
+        return BigInt(hashes.F.toString(hashes.hash0(left, right)));
     }
 
     // Insere um par key-value na SMT
@@ -169,12 +176,12 @@ function generateNullifier(address, secret = "secret") {
     return BigInt('0x' + result.slice(0, 62)); // Trunca para field element
 }
 
-// Gera nullifier hash usando Poseidon(userAddress, nullifier) (compatível com Circom)
+// Gera nullifier hash usando hash0 do circomlibjs (Poseidon com 2 inputs)
 function generateNullifierHash(address, nullifier) {
     if (!poseidonReady) throw new Error('Poseidon not ready');
     const key = addressToBigInt(address);
-    // Poseidon([userAddress, nullifier])
-    return BigInt(poseidon.F.toString(poseidon([key, nullifier])));
+    // Usa hash0 para 2 inputs: Poseidon([userAddress, nullifier])
+    return BigInt(hashes.F.toString(hashes.hash0(key, nullifier)));
 }
 
 async function main() {
@@ -317,11 +324,6 @@ async function main() {
         inputs: circomInputs,
         results: results
     };
-}
-
-// Executa se for chamado diretamente
-if (require.main === module) {
-    main().catch(console.error);
 }
 
 module.exports = { SparseMerkleTree, main };

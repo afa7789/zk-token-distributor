@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "poseidon-lite": "^1.0.0"
+    "circomlibjs": "^0.1.7"
   }
 }

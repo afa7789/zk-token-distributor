@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "circomlib": "^2.0.5",
-    "poseidon-lite": "^0.3.0"
+    "circomlibjs": "^0.1.7"
   },
   "name": "circom",
   "version": "1.0.0",
