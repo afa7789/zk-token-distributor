@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const userAddressDecimal = addressToDecimal(userAddress);
     
     // Read the inputs_circom.json file from the out directory
-    const filePath = path.join(process.cwd(), '..', 'out', 'inputs_circom.json');
+    const filePath = path.join(process.cwd(), '..', 'out', 'inputs_circom_fixed.json');
     const fileContent = await readFile(filePath, 'utf-8');
     const inputsData: UserData[] = JSON.parse(fileContent);
 

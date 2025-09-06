@@ -23,6 +23,10 @@ If you rely on the provided Foundry scripts for Merkle/proof generation, Foundry
 
     ```bash
     forge script script/MerkleGenerator.s.sol --ffi
+    # use the alternative the above need fixes.
+    pushd circuits/circom
+    bun generator_merkle_tree2.js  
+    popd
     ```
 
     - Output files (merkle root, proofs, leaves) are written to `data/` or the `circuits` output. Check the script source if you need exact paths.

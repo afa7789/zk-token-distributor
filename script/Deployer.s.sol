@@ -19,7 +19,7 @@ contract Deployer is Script {
 
         // Try to read SMT results from a single file path
         bool fileRead = false;
-        string memory filePath = "out/smt_results.json";
+        string memory filePath = "out/smt_results_fixed.json";
         try vm.readFile(filePath) returns (string memory json) {
             // Extract SMT root and total amount from file
             smtRootUint = json.readUint(".smtRoot");
@@ -40,9 +40,11 @@ contract Deployer is Script {
         // Convert SMT root from uint256 to bytes32
         bytes32 merkleRoot = bytes32(smtRootUint);
 
-        console.log("SMT Root (uint256):", smtRootUint);
-        console.log("SMT Root (bytes32):", vm.toString(merkleRoot));
-        console.log("Total Claimable Amount:", totalAmount);
+    console.log("SMT Root (uint256):", smtRootUint);
+    console.log("SMT Root (bytes32):", vm.toString(merkleRoot));
+    console.log("Total Claimable Amount:", totalAmount);
+    // Log the current block timestamp to help debug InvalidTimestamp errors
+    console.log("Current block.timestamp:", block.timestamp);
 
         // Deploy Verifier first
         VerifierZK verifier = new VerifierZK();
@@ -64,7 +66,8 @@ contract Deployer is Script {
             IERC20(address(token)), // _token
             address(verifier), // _verifier
             totalAmount, // _totalClaimable
-            block.timestamp + 1 minutes, // _claimPeriodStart (starts in 1 second)
+            // Give a larger buffer to ensure start is strictly in the future
+            block.timestamp + 5 minutes, // _claimPeriodStart (starts in ~5 minutes)
             block.timestamp + 30 days // _claimPeriodEnd (30 days from now)
         );
         console.log("ZKTokenDistributor deployed at:", address(distributor));

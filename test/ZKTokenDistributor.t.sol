@@ -35,8 +35,10 @@ contract ZKTokenDistributorTest is Test {
     address public user2;
     address public user3;
 
-    bytes32 public constant ROOT = bytes32(uint256(0x123456789abcdef));
-    uint256 public constant TOTAL_CLAIMABLE = 1000 ether;
+    // Set to the real merkle root from your calldata.txt so real-proof tests pass
+    bytes32 public constant ROOT = bytes32(uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264));
+    // Use the real total claimable to cover the amount present in your calldata
+    uint256 public constant TOTAL_CLAIMABLE = uint256(0x65a4da25d3016c00000);
     uint256 public claimPeriodStart;
     uint256 public claimPeriodEnd;
 
@@ -427,37 +429,34 @@ contract ZKTokenDistributorTest is Test {
 
         // Your REAL calldata from circuits/circom/output/calldata.txt
         uint256[2] memory realPa = [
-            0x288b8b6fad3c5f4711a8e76e6fcdb98f820051fb4fbe3dece66cfc0907e9017d,
-            0x16681dd0680033808a1ddc0ee9a060670abbd82a8e48bd0425f48bace866f240
+            uint256(0x14f56ef6ca5a1300290192ff18cb11eb2817519b8dc6f3ad5d41657794df7e54),
+            uint256(0x020c9bce56bdbbb4a1494f57e2da98831f94d6b8609fe7a4337746fd652bf44d)
         ];
 
         uint256[2][2] memory realPb = [
             [
-                0x008c07847d9f93d742e8c6c7b1ede7adc18e596b2007146fd5f944bcd5378b55,
-                0x2f4dd9f435df8566a829656c84e0c6b42dc627aaf0e352c4c1bed605d2bb3085
+                uint256(0x11d64c137625d352c7c8bba77e2fd19ed7b50ad24edf4e782765fbcfee2fc187),
+                uint256(0x02f44220d60b020686f82a078d661079e08c07bcff5d7a2c519659eb92fa49fc)
             ],
             [
-                0x2bc98ebf48b0c2ee285a08988f64d5e2c63f32caa654910411ef7069a361f69c,
-                0x214173a7face6251f2bf42ded96c200165c16102fc198bb9c5be511e377829d3
+                uint256(0x1464e29961b20f8b977e19d64821206e704814b3c22c9ec4beea4e89614be07a),
+                uint256(0x1780392ce9086cd2a18fa37a81eae7609f4883b1d7c7046bd21901d14f1c4d84)
             ]
         ];
 
         uint256[2] memory realPc = [
-            0x16abc825322f5c3e54dbbce691e4268d6d61ac3600d446b86878c1b4bb2ae140,
-            0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
+            uint256(0x0df742e8520d01459c53be9a7b2b9b2bdb50c04f1fc6c0e8d3fec0f0abae0306),
+            uint256(0x021d5e3953c23e8534864bc3cfdb1b0ebd0fd2d56f6a987e947d3a9b5ccbe9fe)
         ];
 
-        // Public signals - merkleRoot, nullifierHash, amount from your input.json
+        // Public signals - merkleRoot, nullifierHash, amount from your calldata
         uint256[3] memory realPubSignals = [
-            uint256(13763994578979737936036119000820792920694940750709564931223618131771408016192), // merkleRoot
-            uint256(16424976203406758828432693063983732784626058622955635942692915795090183598965), // nullifierHash
-            uint256(20000000000000000000000) // amount from input.json
+            uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264), // merkleRoot
+            uint256(0x1e813da0b36c785286749272e6c5721e8d713558e9a0bbce80785dfd56e69d0b), // nullifierHash
+            uint256(0x65a4da25d3016c00000) // amount from calldata
         ];
 
-        // Amount from your input.json - but let's use a smaller amount that fits in our test distributor
-        // Original: 20000000000000000000000 (20,000 tokens)
-        // Test amount: 100000000000000000000 (100 tokens - within our 1000 token limit)
-        uint256 realAmount = 100000000000000000000; // 100 * 10^18
+        uint256 realAmount = uint256(0x65a4da25d3016c00000);
 
         console.log("=== Testing Real Calldata ===");
         console.log("Amount to claim:", realAmount);
@@ -510,33 +509,33 @@ contract ZKTokenDistributorTest is Test {
 
         // Your REAL calldata
         uint256[2] memory realPa = [
-            0x288b8b6fad3c5f4711a8e76e6fcdb98f820051fb4fbe3dece66cfc0907e9017d,
-            0x16681dd0680033808a1ddc0ee9a060670abbd82a8e48bd0425f48bace866f240
+            uint256(0x14f56ef6ca5a1300290192ff18cb11eb2817519b8dc6f3ad5d41657794df7e54),
+            uint256(0x020c9bce56bdbbb4a1494f57e2da98831f94d6b8609fe7a4337746fd652bf44d)
         ];
 
         uint256[2][2] memory realPb = [
             [
-                0x008c07847d9f93d742e8c6c7b1ede7adc18e596b2007146fd5f944bcd5378b55,
-                0x2f4dd9f435df8566a829656c84e0c6b42dc627aaf0e352c4c1bed605d2bb3085
+                uint256(0x11d64c137625d352c7c8bba77e2fd19ed7b50ad24edf4e782765fbcfee2fc187),
+                uint256(0x02f44220d60b020686f82a078d661079e08c07bcff5d7a2c519659eb92fa49fc)
             ],
             [
-                0x2bc98ebf48b0c2ee285a08988f64d5e2c63f32caa654910411ef7069a361f69c,
-                0x214173a7face6251f2bf42ded96c200165c16102fc198bb9c5be511e377829d3
+                uint256(0x1464e29961b20f8b977e19d64821206e704814b3c22c9ec4beea4e89614be07a),
+                uint256(0x1780392ce9086cd2a18fa37a81eae7609f4883b1d7c7046bd21901d14f1c4d84)
             ]
         ];
 
         uint256[2] memory realPc = [
-            0x16abc825322f5c3e54dbbce691e4268d6d61ac3600d446b86878c1b4bb2ae140,
-            0x0a6da990eeadf5d915d51ab25e5d584fade63937bd669c7473a515c698d84826
+            uint256(0x0df742e8520d01459c53be9a7b2b9b2bdb50c04f1fc6c0e8d3fec0f0abae0306),
+            uint256(0x021d5e3953c23e8534864bc3cfdb1b0ebd0fd2d56f6a987e947d3a9b5ccbe9fe)
         ];
 
         uint256[3] memory realPubSignals = [
-            uint256(13763994578979737936036119000820792920694940750709564931223618131771408016192), // merkleRoot
-            uint256(16424976203406758828432693063983732784626058622955635942692915795090183598965), // nullifierHash
-            uint256(100000000000000000000) // 100 tokens for test
+            uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264),
+            uint256(0x1e813da0b36c785286749272e6c5721e8d713558e9a0bbce80785dfd56e69d0b),
+            uint256(0x65a4da25d3016c00000) // amount from calldata
         ];
 
-        uint256 realAmount = 100000000000000000000; // 100 * 10^18 (reduced for test)
+        uint256 realAmount = uint256(0x65a4da25d3016c00000);
 
         // First claim should succeed
         vm.prank(user1);
