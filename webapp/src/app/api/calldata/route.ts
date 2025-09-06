@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CalldataGenerator } from '@/lib/generateCalldata';
 import { cookies } from 'next/headers';
 import path from 'path';
+import fs from 'fs/promises';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +38,25 @@ export async function GET(request: NextRequest) {
     }
     
     // Path to SMT results file
-    const smtResultsPath = path.join(process.cwd(), '..', 'out', 'smt_results.json');
+    const smtResultsPath = path.join(process.cwd(), '..', 'out', 'smt_results_fixed.json');
+    // Verify SMT file exists and contains the address before attempting to generate calldata
+    try {
+      const exists = await addressExistsInSmt(smtResultsPath, userAddress);
+      if (!exists) {
+        return NextResponse.json({
+          error: 'No merkle tree data found for address',
+          address: userAddress,
+          path: smtResultsPath
+        }, { status: 404 });
+      }
+    } catch (err) {
+      console.error('SMT file read/parse error', err);
+      return NextResponse.json({
+        error: 'SMT file read/parse error',
+        details: String(err),
+        path: smtResultsPath
+      }, { status: 500 });
+    }
     
     // Generate calldata for the authenticated user
     const calldata = await CalldataGenerator.generateCalldataForUser(
@@ -98,8 +117,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Path to SMT results file
-    const smtResultsPath = path.join(process.cwd(), '..', 'out', 'smt_results.json');
-    
+    const smtResultsPath = path.join(process.cwd(), '..', 'out', 'smt_results_fixed.json');
+    // Verify SMT file exists and contains the address before attempting to generate calldata
+    try {
+      const exists = await addressExistsInSmt(smtResultsPath, address);
+      if (!exists) {
+        return NextResponse.json({
+          error: 'No merkle tree data found for address',
+          address,
+          path: smtResultsPath
+        }, { status: 404 });
+      }
+    } catch (err) {
+      console.error('SMT file read/parse error', err);
+      return NextResponse.json({
+        error: 'SMT file read/parse error',
+        details: String(err),
+        path: smtResultsPath
+      }, { status: 500 });
+    }
     // Generate calldata for the requested address
     const calldata = await CalldataGenerator.generateCalldataForUser(
       address, 
@@ -125,4 +161,44 @@ export async function POST(request: NextRequest) {
       message: 'Failed to generate calldata'
     }, { status: 500 });
   }
+}
+
+async function addressExistsInSmt(smtPath: string, address: string | null | undefined): Promise<boolean> {
+  if (!address) return false;
+  const addr = address.toLowerCase();
+  const raw = await fs.readFile(smtPath, 'utf8');
+  const json = JSON.parse(raw);
+
+  // If it's an object keyed by address
+  if (json && typeof json === 'object' && !Array.isArray(json)) {
+    // direct keys may be 0x... or lowercased
+    for (const k of Object.keys(json)) {
+      if (k.toLowerCase() === addr) return true;
+    }
+  }
+
+  // If it's an array, find by common shapes
+  if (Array.isArray(json)) {
+    return json.some((item: unknown) => {
+      if (!item) return false;
+      if (typeof item === 'string') return item.toLowerCase() === addr;
+      if (typeof item === 'object') {
+        const obj = item as Record<string, unknown>;
+        const keyVal = obj['key'];
+        if (keyVal !== undefined && (typeof keyVal === 'string' || typeof keyVal === 'number')) {
+          if (String(keyVal).toLowerCase() === addr) return true;
+        }
+        const addressVal = obj['address'];
+        if (addressVal !== undefined && (typeof addressVal === 'string' || typeof addressVal === 'number')) {
+          if (String(addressVal).toLowerCase() === addr) return true;
+        }
+        // fallback: stringify
+        return JSON.stringify(item).toLowerCase().includes(addr);
+      }
+      return false;
+    });
+  }
+
+  // Fallback: full-text search
+  return JSON.stringify(json).toLowerCase().includes(addr);
 }

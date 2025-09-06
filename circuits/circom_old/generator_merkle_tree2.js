@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-
 const circomlibjs = require('circomlibjs');
 let hashes, poseidonReady = false;
 
@@ -13,7 +12,7 @@ async function initializeHashes() {
         const getHashes = (await import('./node_modules/circomlibjs/src/smt_hashes_poseidon.js')).default;
         hashes = await getHashes();
         poseidonReady = true;
-        
+
         if (require.main === module) {
             main().catch(console.error);
         }
@@ -23,7 +22,9 @@ async function initializeHashes() {
     }
 }
 
-initializeHashes();class SparseMerkleTree {
+initializeHashes();
+
+class SparseMerkleTree {
     constructor(levels) {
         this.levels = levels;
         this.nodes = new Map();
@@ -48,8 +49,13 @@ initializeHashes();class SparseMerkleTree {
         const keyBigInt = BigInt(key);
         const valueBigInt = BigInt(value);
         const leafHash = this.calculateLeafHash(keyBigInt, valueBigInt);
-        
+        if(keyBigInt == 1390849295786071768276380950238675083608645509734n){
+            console.log(`MACACO\n\nLeaf hash for key ${key} and value ${value}: ${leafHash.toString()}\n\n`);
+        }
         this.root = this.insertRecursive(this.root, keyBigInt, leafHash, this.levels);
+        if(keyBigInt == 1390849295786071768276380950238675083608645509734n){
+            console.log("\n\nMACACO FINAL")
+        }
     }
 
     insertRecursive(nodeHash, key, leafHash, level) {
@@ -57,9 +63,9 @@ initializeHashes();class SparseMerkleTree {
             return leafHash;
         }
 
-        // FIXED: Usa LSB first (bit 0 = LSB) para compatibilidade com Circom
-        const bitIndex = this.levels - level; // Para 5 níveis: level 5->bit 0, level 4->bit 1, etc.
+        const bitIndex = this.levels - level; // 0-indexed bit for the current level
         const goRight = ((key >> BigInt(bitIndex)) & 1n) === 1n;
+
 
         let node = { left: this.EMPTY_NODE_HASH, right: this.EMPTY_NODE_HASH };
         if (nodeHash !== this.EMPTY_NODE_HASH && this.nodes.has(nodeHash.toString())) {
@@ -71,47 +77,65 @@ initializeHashes();class SparseMerkleTree {
         } else {
             node.left = this.insertRecursive(node.left, key, leafHash, level - 1);
         }
-
+        if(key == 1390849295786071768276380950238675083608645509734n){
+            console.log(`Inserting at level ${level}, bitIndex ${bitIndex}, goRight: ${goRight}`,"node at level ", level, ":", node);
+        }
         const newNodeHash = this.hashNode(node.left, node.right);
         this.nodes.set(newNodeHash.toString(), node);
 
         return newNodeHash;
     }
 
-    // Gera prova de inclusão para uma chave
+    // Gera prova de inclusão para uma chave (LSB-first)
     generateInclusionProof(key) {
         const proof = [];
         const keyBigInt = BigInt(key);
-        let currentHash = this.root;
 
-        for (let i = 0; i < this.levels; i++) {
-            // FIXED: Usa LSB first para compatibilidade com Circom
-            // bitIndex = i -> depth 0 uses bit 0 (LSB), depth 1 uses bit 1, etc.
-            const bitIndex = i;
+        // CRITICAL FIX: Generate proof LSB-first to match circuit expectations
+        // proof[0] = sibling for bit 0 (LSB), proof[1] = sibling for bit 1, etc.
+        for (let bitIndex = 0; bitIndex < this.levels; bitIndex++) {
             const goRight = ((keyBigInt >> BigInt(bitIndex)) & 1n) === 1n;
 
+            // Navega pela árvore para encontrar o sibling no nível correspondente ao bitIndex
+            let currentHash = this.root;
+            let currentNode = null;
+
+            // Caminha pela árvore para encontrar o nó que contém o sibling para este nível
+            // Começa do nível 'levels' e desce até o nível logo acima onde o sibling é necessário
+            for (let level = this.levels; level > bitIndex + 1; level--) {
+                const currentBitIndex = this.levels - level; // Bit index para navegação atual
+                const goRightAtThisLevel = ((keyBigInt >> BigInt(currentBitIndex)) & 1n) === 1n;
+
+                if (currentHash === this.EMPTY_NODE_HASH) {
+                    break; // Se o nó atual for vazio, não podemos continuar
+                }
+
+                const node = this.nodes.get(currentHash.toString());
+                if (!node) { // Nó não encontrado, algo está errado
+                    currentHash = this.EMPTY_NODE_HASH;
+                    break;
+                }
+
+                currentHash = goRightAtThisLevel ? node.right : node.left;
+            }
+
+            // Agora, 'currentHash' é o hash do nó no nível onde precisamos extrair o sibling para 'bitIndex'
             if (currentHash === this.EMPTY_NODE_HASH) {
                 proof.push(this.EMPTY_NODE_HASH);
             } else {
                 const node = this.nodes.get(currentHash.toString());
                 if (!node) {
                     proof.push(this.EMPTY_NODE_HASH);
-                    currentHash = this.EMPTY_NODE_HASH;
                 } else {
-                    if (goRight) {
-                        proof.push(node.left);
-                        currentHash = node.right;
-                    } else {
-                        proof.push(node.right);
-                        currentHash = node.left;
-                    }
+                    // O sibling é o oposto do caminho que tomamos neste nível
+                    const sibling = goRight ? node.left : node.right;
+                    proof.push(sibling);
                 }
             }
         }
-
-        // FIXED: Remove a inversão - agora os siblings já estão na ordem correta
         return proof;
     }
+
 
     // Verifica uma prova de inclusão
     verifyInclusionProof(key, value, proof, expectedRoot) {
@@ -119,20 +143,38 @@ initializeHashes();class SparseMerkleTree {
         const valueBigInt = BigInt(value);
         let computedHash = this.calculateLeafHash(keyBigInt, valueBigInt);
 
+        // CRITICAL FIX: Verify proof LSB-first to match circuit logic
         for (let i = 0; i < proof.length; i++) {
-            // FIXED: Usa LSB first
-            // Use same indexing as insertRecursive (depth i -> bit i)
-            const bitIndex = i;
+            const bitIndex = i; // LSB-first: proof[0] for bit 0, proof[1] for bit 1, etc.
             const goRight = ((keyBigInt >> BigInt(bitIndex)) & 1n) === 1n;
+            const sibling = proof[i];
 
             if (goRight) {
-                computedHash = this.hashNode(proof[i], computedHash);
+                // If bit is 1, we went right, so sibling is on the left
+                computedHash = this.hashNode(sibling, computedHash);
             } else {
-                computedHash = this.hashNode(computedHash, proof[i]);
+                // If bit is 0, we went left, so sibling is on the right
+                computedHash = this.hashNode(computedHash, sibling);
             }
         }
 
         return computedHash === expectedRoot;
+    }
+
+    // Debug function to print tree structure
+    printTree() {
+        console.log('Tree structure:');
+        console.log('Root:', this.root.toString());
+        console.log('Nodes:', this.nodes.size);
+
+        // Print some nodes for debugging
+        let count = 0;
+        for (let [hash, node] of this.nodes) {
+            if (count < 5) {
+                console.log(`Node ${hash}: left=${node.left.toString()}, right=${node.right.toString()}`);
+                count++;
+            }
+        }
     }
 }
 
@@ -140,24 +182,24 @@ initializeHashes();class SparseMerkleTree {
 function parseCSV(csvContent) {
     const lines = csvContent.trim().split('\n');
     const data = [];
-    
+
     // Pula o header (primeira linha)
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (line === '') continue;
-        
+
         const fields = line.split(',').map(field => field.trim());
         if (fields.length < 2) continue;
-        
+
         const address = fields[0];
         const amount = fields[1];
-        
+
         data.push({
             address: address,
             amount: BigInt(amount)
         });
     }
-    
+
     return data;
 }
 
@@ -184,24 +226,29 @@ function generateNullifierHash(address, nullifier) {
     return BigInt(hashes.F.toString(hashes.hash0(key, nullifier)));
 }
 
+// Debug function to convert number to binary representation
+function toBinary(num, bits) {
+    return num.toString(2).padStart(bits, '0');
+}
+
 async function main() {
-    console.log('\n--- Sparse Merkle Tree Generator para Circom (FIXED LSB-first) ---');
-    
+    console.log('\n--- Sparse Merkle Tree Generator para Circom (LSB-first) ---');
+
     // Configuração
-    const TREE_LEVELS = 5;
+    const TREE_LEVELS = 5; // Este valor é importante e deve corresponder ao circuito Circom
     const CSV_PATH = '../../data/addresses.csv'; // Ajustado para o caminho correto
     const OUTPUT_DIR = '../../out';
-    
+
     // Cria diretório de saída se não existir
     if (!fs.existsSync(OUTPUT_DIR)) {
         fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     }
-    
+
     console.log('Níveis da árvore:', TREE_LEVELS);
-    
+
     // Lê e processa CSV
     console.log('Lendo CSV:', CSV_PATH);
-    
+
     let csvContent;
     try {
         csvContent = fs.readFileSync(CSV_PATH, 'utf8');
@@ -213,34 +260,41 @@ async function main() {
         console.error('0x2345678901234567890123456789012345678901,2000');
         process.exit(1);
     }
-    
+
     const leafData = parseCSV(csvContent);
     console.log('Dados processados:', leafData.length, 'entradas');
-    
+
     // Inicializa SMT
     const smt = new SparseMerkleTree(TREE_LEVELS);
-    
+
     console.log('\n--- Inserindo dados na SMT ---');
-    
+
     // Insere todos os dados na SMT
     for (let i = 0; i < leafData.length; i++) {
         const key = addressToBigInt(leafData[i].address);
         const value = leafData[i].amount;
-        
+
+        console.log(`Inserindo ${i}: address=${leafData[i].address}, key=${key.toString()}, value=${value.toString()}`);
+        console.log(`  Key binary (${TREE_LEVELS} bits): ${toBinary(key, TREE_LEVELS)}`);
+
         smt.insert(key, value);
-        
+
         if (i < 3) {
             console.log(`Inserido: ${leafData[i].address} -> ${value}`);
+            console.log(`  Root após inserção: ${smt.root.toString()}`);
         } else if (i === 3) {
             console.log(`... e mais ${leafData.length - 3} entradas`);
         }
     }
-    
+
     console.log('\n--- Raiz da SMT ---');
     console.log('Root:', smt.root.toString());
-    
+
+    // Debug tree structure
+    smt.printTree();
+
     console.log('\n--- Gerando provas de inclusão e nullifiers ---');
-    
+
     const results = {
         smtRoot: smt.root.toString(),
         treeLevels: TREE_LEVELS,
@@ -249,33 +303,43 @@ async function main() {
         totalAmount: leafData.reduce((sum, leaf) => sum + leaf.amount, 0n).toString(),
         leaves: []
     };
-    
+
     const circomInputs = [];
-    
+
     for (let i = 0; i < leafData.length; i++) {
         const address = leafData[i].address;
         const amount = leafData[i].amount;
         const key = addressToBigInt(address);
-        
+
         // Gera nullifier
         const nullifier = generateNullifier(address, `secret_${i}`);
-        
+
         // Calcula nullifier hash usando Poseidon(userAddress, nullifier)
         const nullifierHash = generateNullifierHash(address, nullifier);
-        
+
         // Gera prova de inclusão
-        const proof = smt.generateInclusionProof(key);
-        
+        const proof = smt.generateInclusionProof(key); // Agora retorna prova LSB-first
+
         // Verifica a prova
         const isValid = smt.verifyInclusionProof(key, amount, proof, smt.root);
-        
+
         // Calcula leaf hash
         const leafHash = smt.calculateLeafHash(key, amount);
-        
+
+        console.log(`\n--- Debug para entrada ${i} ---`);
+        console.log(`Address: ${address}`);
+        console.log(`Key: ${key.toString()}`);
+        console.log(`Key binary: ${toBinary(key, TREE_LEVELS)}`); // Mostra os 5 bits LSB-first
+        console.log(`Amount: ${amount.toString()}`);
+        console.log(`Leaf hash: ${leafHash.toString()}`);
+        console.log(`Proof: [${proof.map(p => p.toString()).join(', ')}]`);
+        console.log(`Proof valid: ${isValid}`);
+
         // Adiciona aos resultados
         results.leaves.push({
             key: address,
             keyUint: key.toString(),
+            keyBinary: toBinary(key, TREE_LEVELS),
             value: amount.toString(),
             leafHash: leafHash.toString(),
             nullifier: nullifier.toString(),
@@ -283,7 +347,7 @@ async function main() {
             siblings: proof.map(p => p.toString()),
             isValid: isValid
         });
-        
+
         // Prepara input para Circom
         circomInputs.push({
             merkleRoot: smt.root.toString(),
@@ -291,9 +355,9 @@ async function main() {
             userAddress: key.toString(),
             amount: amount.toString(),
             nullifier: nullifier.toString(),
-            siblings: proof.map(p => p.toString())
+            siblings: proof.map(p => p.toString()) // Usa prova LSB-first diretamente
         });
-        
+
         if (i < 3) {
             console.log(`Prova para ${address} (amount: ${amount}) válida: ${isValid}`);
             console.log(`  Nullifier: ${nullifier.toString()}`);
@@ -302,23 +366,23 @@ async function main() {
             console.log(`... e mais ${leafData.length - 3} provas geradas`);
         }
     }
-    
+
     // Escreve resultados nos arquivos
     const resultsPath = path.join(OUTPUT_DIR, 'smt_results_fixed.json');
     const circomInputsPath = path.join(OUTPUT_DIR, 'inputs_circom_fixed.json');
-    
+
     fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
     fs.writeFileSync(circomInputsPath, JSON.stringify(circomInputs, null, 2));
-    
+
     console.log('\n--- Resultados salvos ---');
     console.log('SMT Results:', resultsPath);
     console.log('Circom Inputs:', circomInputsPath);
-    
+
     // Mostra exemplo de como usar com seu circuito
     console.log('\n--- Exemplo de uso com Circom ---');
     console.log('Para testar seu circuito, use o primeiro input:');
     console.log(JSON.stringify(circomInputs[0], null, 2));
-    
+
     return {
         root: smt.root.toString(),
         inputs: circomInputs,

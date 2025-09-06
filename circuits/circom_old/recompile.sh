@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # --- Configuração ---
-CIRCOM_FILE="merkle_tree.circom"
-R1CS_OUTPUT="output/merkle_tree.r1cs"
+CIRCOM_FILE="airdrop_smt.circom"
+R1CS_OUTPUT="output/airdrop_smt.r1cs"
 PTAU_FILE="powersOfTau28_hez_final_15.ptau"
-ZKEY_INITIAL="output/merkle_tree_00.zkey"
-ZKEY_CONTRIBUTED="output/merkle_tree_01.zkey"
+ZKEY_INITIAL="output/airdrop_smt_00.zkey"
+ZKEY_CONTRIBUTED="output/airdrop_smt_01.zkey"
 VERIFICATION_KEY="output/verification_key.json"
 SOL_VERIFIER="output/AirdropVerifier.sol"
 ENTROPY_TEXT="First contribution" # Texto de entropia para o zkey contribute
