@@ -120,4 +120,29 @@ echo "Exporting Solidity calldata..."
 snarkjs zkey export soliditycalldata "$PUBLIC" "$PROOF" > "$SCRIPT_DIR/output/calldata.txt"
 echo "Calldata exported to $SCRIPT_DIR/output/calldata.txt"
 
+# Fix calldata.txt to be valid JSON (add outer brackets)
+echo "Fixing calldata.txt to be valid JSON..."
+if command -v $RUNNER >/dev/null 2>&1; then
+  $RUNNER -e "
+    const fs = require('fs');
+    const calldataPath = '$SCRIPT_DIR/output/calldata.txt';
+    
+    try {
+      let calldata = fs.readFileSync(calldataPath, 'utf8').trim();
+      
+      // Fix calldata.txt to be valid JSON if it's missing outer brackets
+      if (!calldata.startsWith('[')) {
+        calldata = '[' + calldata + ']';
+        fs.writeFileSync(calldataPath, calldata);
+        console.log('Fixed calldata.txt to be valid JSON');
+      }
+    } catch (error) {
+      console.error('Error fixing calldata.txt:', error);
+      process.exit(1);
+    }
+  "
+else
+  echo "Warning: Could not fix calldata.txt format (no JavaScript runtime found)"
+fi
+
 exit 0

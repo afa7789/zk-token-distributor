@@ -14,34 +14,48 @@ contract VerifierZKTest is Test {
         verifier = new VerifierZK();
     }
 
+    function loadCalldata() internal view returns (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) {
+        // Try to load structured calldata.json first, fallback to calldata.txt
+        try vm.readFile("circuits/circom/output/calldata.json") returns (string memory json) {
+            // Use structured format
+            pA[0] = vm.parseJsonUint(json, ".pA[0]");
+            pA[1] = vm.parseJsonUint(json, ".pA[1]");
+            
+            pB[0][0] = vm.parseJsonUint(json, ".pB[0][0]");
+            pB[0][1] = vm.parseJsonUint(json, ".pB[0][1]");
+            pB[1][0] = vm.parseJsonUint(json, ".pB[1][0]");
+            pB[1][1] = vm.parseJsonUint(json, ".pB[1][1]");
+            
+            pC[0] = vm.parseJsonUint(json, ".pC[0]");
+            pC[1] = vm.parseJsonUint(json, ".pC[1]");
+            
+            pubSignals[0] = vm.parseJsonUint(json, ".pubSignals[0]");
+            pubSignals[1] = vm.parseJsonUint(json, ".pubSignals[1]");
+            pubSignals[2] = vm.parseJsonUint(json, ".pubSignals[2]");
+        } catch {
+            // Fallback to array format in calldata.txt
+            string memory json = vm.readFile("circuits/circom/output/calldata.txt");
+            
+            pA[0] = vm.parseJsonUint(json, "$[0][0]");
+            pA[1] = vm.parseJsonUint(json, "$[0][1]");
+            
+            pB[0][0] = vm.parseJsonUint(json, "$[1][0][0]");
+            pB[0][1] = vm.parseJsonUint(json, "$[1][0][1]");
+            pB[1][0] = vm.parseJsonUint(json, "$[1][1][0]");
+            pB[1][1] = vm.parseJsonUint(json, "$[1][1][1]");
+            
+            pC[0] = vm.parseJsonUint(json, "$[2][0]");
+            pC[1] = vm.parseJsonUint(json, "$[2][1]");
+            
+            pubSignals[0] = vm.parseJsonUint(json, "$[3][0]");
+            pubSignals[1] = vm.parseJsonUint(json, "$[3][1]");
+            pubSignals[2] = vm.parseJsonUint(json, "$[3][2]");
+        }
+    }
+
     function testValidProof() public {
-        // Valid proof data taken from your calldata.txt
-        uint256[2] memory pA = [
-            uint256(0x14f56ef6ca5a1300290192ff18cb11eb2817519b8dc6f3ad5d41657794df7e54),
-            uint256(0x020c9bce56bdbbb4a1494f57e2da98831f94d6b8609fe7a4337746fd652bf44d)
-        ];
-
-        uint256[2][2] memory pB = [
-            [
-                uint256(0x11d64c137625d352c7c8bba77e2fd19ed7b50ad24edf4e782765fbcfee2fc187),
-                uint256(0x02f44220d60b020686f82a078d661079e08c07bcff5d7a2c519659eb92fa49fc)
-            ],
-            [
-                uint256(0x1464e29961b20f8b977e19d64821206e704814b3c22c9ec4beea4e89614be07a),
-                uint256(0x1780392ce9086cd2a18fa37a81eae7609f4883b1d7c7046bd21901d14f1c4d84)
-            ]
-        ];
-
-        uint256[2] memory pC = [
-            uint256(0x0df742e8520d01459c53be9a7b2b9b2bdb50c04f1fc6c0e8d3fec0f0abae0306),
-            uint256(0x021d5e3953c23e8534864bc3cfdb1b0ebd0fd2d56f6a987e947d3a9b5ccbe9fe)
-        ];
-
-        uint256[3] memory pubSignals = [
-            uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264),
-            uint256(0x1e813da0b36c785286749272e6c5721e8d713558e9a0bbce80785dfd56e69d0b),
-            uint256(0x00000000000000000000000000000000000000000000065a4da25d3016c00000)
-        ];
+        // Load proof data directly from calldata.txt
+        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) = loadCalldata();
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
 
@@ -122,32 +136,7 @@ contract VerifierZKTest is Test {
 
     function testGasUsage() public {
         // Test gas consumption for proof verification using real calldata
-        uint256[2] memory pA = [
-            uint256(0x14f56ef6ca5a1300290192ff18cb11eb2817519b8dc6f3ad5d41657794df7e54),
-            uint256(0x020c9bce56bdbbb4a1494f57e2da98831f94d6b8609fe7a4337746fd652bf44d)
-        ];
-
-        uint256[2][2] memory pB = [
-            [
-                uint256(0x11d64c137625d352c7c8bba77e2fd19ed7b50ad24edf4e782765fbcfee2fc187),
-                uint256(0x02f44220d60b020686f82a078d661079e08c07bcff5d7a2c519659eb92fa49fc)
-            ],
-            [
-                uint256(0x1464e29961b20f8b977e19d64821206e704814b3c22c9ec4beea4e89614be07a),
-                uint256(0x1780392ce9086cd2a18fa37a81eae7609f4883b1d7c7046bd21901d14f1c4d84)
-            ]
-        ];
-
-        uint256[2] memory pC = [
-            uint256(0x0df742e8520d01459c53be9a7b2b9b2bdb50c04f1fc6c0e8d3fec0f0abae0306),
-            uint256(0x021d5e3953c23e8534864bc3cfdb1b0ebd0fd2d56f6a987e947d3a9b5ccbe9fe)
-        ];
-
-        uint256[3] memory pubSignals = [
-            uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264),
-            uint256(0x1e813da0b36c785286749272e6c5721e8d713558e9a0bbce80785dfd56e69d0b),
-            uint256(0x00000000000000000000000000000000000000000000065a4da25d3016c00000)
-        ];
+        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) = loadCalldata();
 
         uint256 gasBefore = gasleft();
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
@@ -220,29 +209,8 @@ contract VerifierZKTest is Test {
         string memory calldataStr = "Your calldata format works correctly!";
         console.log(calldataStr);
 
-        // Run the actual verification
-        uint256[2] memory pA = [
-            uint256(0x2db585a6090266b7e2ac8e0e264bc1d66a2af45e662bb254d8902dae58676fc7),
-            uint256(0x2854eff5333ee8d45c0618d656fb67df6f5dc7bd9b2e43f10b76dda6fb9dfbe1)
-        ];
-
-        uint256[2][2] memory pB = [
-            [
-                uint256(0x2448a7635d1fd57597965e58a9136c46bc5eeb945f33f051fa06899b4c5e1e80),
-                uint256(0x24979b6f469e07866debc57a7b8d94cf459594bb8a06d850c93d925da1a9f893)
-            ],
-            [
-                uint256(0x1d63213e39e92404a4f7832fc91773ab657821021b3a15c0d467281ab7f9caf4),
-                uint256(0x0a5bb230ff672c2993f8db88085f165331642763007fc5c3b9598662050c19db)
-            ]
-        ];
-
-        uint256[2] memory pC = [
-            uint256(0x003277a1abed15745b5333fa38453d7b5ce89d58a6b187e1877c0348c51e3b57),
-            uint256(0x0398736659ccd8cac07daba25456d3e21ff6976a4096007fb463ee891aa3d9ef)
-        ];
-
-        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0x0000000000000000000000000000000000000000000000000000000000000000), uint256(100 * 10**18)];
+        // Load proof data directly from calldata.txt
+        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) = loadCalldata();
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
         console.log("Your calldata verification result:", result);

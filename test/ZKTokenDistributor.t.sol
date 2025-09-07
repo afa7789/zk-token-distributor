@@ -36,9 +36,9 @@ contract ZKTokenDistributorTest is Test {
     address public user3;
 
     // Set to the real merkle root from your calldata.txt so real-proof tests pass
-    bytes32 public constant ROOT = bytes32(uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264));
+    bytes32 public constant ROOT = bytes32(uint256(7054385145717911653721609161544638637633539625963676117015460245407631267339));
     // Use the real total claimable to cover the amount present in your calldata
-    uint256 public constant TOTAL_CLAIMABLE = uint256(0x65a4da25d3016c00000);
+    uint256 public constant TOTAL_CLAIMABLE = 540000000000000000000000; // Total from generator (540,000 tokens)
     uint256 public claimPeriodStart;
     uint256 public claimPeriodEnd;
 
@@ -76,6 +76,29 @@ contract ZKTokenDistributorTest is Test {
         // Mint tokens to distributor
         vm.prank(owner);
         token.mint(address(distributor), TOTAL_CLAIMABLE);
+    }
+
+    function loadCalldata() internal view returns (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) {
+        string memory json = vm.readFile("circuits/circom/output/calldata.txt");
+        
+        // Parse pA
+        pA[0] = vm.parseJsonUint(json, "$[0][0]");
+        pA[1] = vm.parseJsonUint(json, "$[0][1]");
+        
+        // Parse pB
+        pB[0][0] = vm.parseJsonUint(json, "$[1][0][0]");
+        pB[0][1] = vm.parseJsonUint(json, "$[1][0][1]");
+        pB[1][0] = vm.parseJsonUint(json, "$[1][1][0]");
+        pB[1][1] = vm.parseJsonUint(json, "$[1][1][1]");
+        
+        // Parse pC
+        pC[0] = vm.parseJsonUint(json, "$[2][0]");
+        pC[1] = vm.parseJsonUint(json, "$[2][1]");
+        
+        // Parse pubSignals
+        pubSignals[0] = vm.parseJsonUint(json, "$[3][0]");
+        pubSignals[1] = vm.parseJsonUint(json, "$[3][1]");
+        pubSignals[2] = vm.parseJsonUint(json, "$[3][2]");
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -137,7 +160,7 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
+        uint256[3] memory pubSignals = [uint256(nullifierHash), claimAmount, uint256(ROOT)];
 
         uint256 userBalanceBefore = token.balanceOf(user1);
         uint256 distributorBalanceBefore = token.balanceOf(address(distributor));
@@ -164,7 +187,7 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
+        uint256[3] memory pubSignals = [uint256(nullifierHash), claimAmount, uint256(ROOT)];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_ClaimPeriodNotStarted.selector);
@@ -176,7 +199,7 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
+        uint256[3] memory pubSignals = [uint256(nullifierHash), claimAmount, uint256(ROOT)];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_ClaimPeriodEnded.selector);
@@ -187,7 +210,7 @@ contract ZKTokenDistributorTest is Test {
         vm.warp(claimPeriodStart + 1);
 
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), 0];
+        uint256[3] memory pubSignals = [uint256(nullifierHash), 0, uint256(ROOT)];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_ZeroAmount.selector);
@@ -199,7 +222,7 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
+        uint256[3] memory pubSignals = [uint256(nullifierHash), claimAmount, uint256(ROOT)];
 
         // First claim should succeed
         vm.prank(user1);
@@ -219,7 +242,7 @@ contract ZKTokenDistributorTest is Test {
 
         uint256 claimAmount = 100 ether;
         bytes32 nullifierHash = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals = [uint256(ROOT), uint256(nullifierHash), claimAmount];
+        uint256[3] memory pubSignals = [uint256(nullifierHash), claimAmount, uint256(ROOT)];
 
         vm.prank(user1);
         vm.expectRevert(IZKTokenDistributor.TokenDistributor_FailedZKProofVerify.selector);
@@ -384,14 +407,14 @@ contract ZKTokenDistributorTest is Test {
 
         // User1 claims with nullifier1
         bytes32 nullifierHash1 = keccak256(abi.encodePacked(user1, "secret1"));
-        uint256[3] memory pubSignals1 = [uint256(ROOT), uint256(nullifierHash1), claimAmount];
+        uint256[3] memory pubSignals1 = [uint256(nullifierHash1), claimAmount, uint256(ROOT)];
 
         vm.prank(user1);
         distributor.claim(mockPa, mockPb, mockPc, pubSignals1);
 
         // User2 claims with nullifier2
         bytes32 nullifierHash2 = keccak256(abi.encodePacked(user2, "secret2"));
-        uint256[3] memory pubSignals2 = [uint256(ROOT), uint256(nullifierHash2), claimAmount];
+        uint256[3] memory pubSignals2 = [uint256(nullifierHash2), claimAmount, uint256(ROOT)];
 
         vm.prank(user2);
         distributor.claim(mockPa, mockPb, mockPc, pubSignals2);
@@ -427,36 +450,10 @@ contract ZKTokenDistributorTest is Test {
         // Warp to claim period
         vm.warp(claimPeriodStart + 1);
 
-        // Your REAL calldata from circuits/circom/output/calldata.txt
-        uint256[2] memory realPa = [
-            uint256(0x14f56ef6ca5a1300290192ff18cb11eb2817519b8dc6f3ad5d41657794df7e54),
-            uint256(0x020c9bce56bdbbb4a1494f57e2da98831f94d6b8609fe7a4337746fd652bf44d)
-        ];
+        // Load REAL calldata from circuits/circom/calldata.txt using FFI
+        (uint256[2] memory realPa, uint256[2][2] memory realPb, uint256[2] memory realPc, uint256[3] memory realPubSignals) = loadCalldata();
 
-        uint256[2][2] memory realPb = [
-            [
-                uint256(0x11d64c137625d352c7c8bba77e2fd19ed7b50ad24edf4e782765fbcfee2fc187),
-                uint256(0x02f44220d60b020686f82a078d661079e08c07bcff5d7a2c519659eb92fa49fc)
-            ],
-            [
-                uint256(0x1464e29961b20f8b977e19d64821206e704814b3c22c9ec4beea4e89614be07a),
-                uint256(0x1780392ce9086cd2a18fa37a81eae7609f4883b1d7c7046bd21901d14f1c4d84)
-            ]
-        ];
-
-        uint256[2] memory realPc = [
-            uint256(0x0df742e8520d01459c53be9a7b2b9b2bdb50c04f1fc6c0e8d3fec0f0abae0306),
-            uint256(0x021d5e3953c23e8534864bc3cfdb1b0ebd0fd2d56f6a987e947d3a9b5ccbe9fe)
-        ];
-
-        // Public signals - merkleRoot, nullifierHash, amount from your calldata
-        uint256[3] memory realPubSignals = [
-            uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264), // merkleRoot
-            uint256(0x1e813da0b36c785286749272e6c5721e8d713558e9a0bbce80785dfd56e69d0b), // nullifierHash
-            uint256(0x65a4da25d3016c00000) // amount from calldata
-        ];
-
-        uint256 realAmount = uint256(0x65a4da25d3016c00000);
+        uint256 realAmount = realPubSignals[1]; // amountOut from public signals
 
         console.log("=== Testing Real Calldata ===");
         console.log("Amount to claim:", realAmount);
@@ -483,7 +480,7 @@ contract ZKTokenDistributorTest is Test {
         assertEq(realDistributor.totalClaimable(), TOTAL_CLAIMABLE - realAmount, "Total claimable should be reduced");
 
         // Check nullifier is used
-        bytes32 nullifierHash = bytes32(realPubSignals[1]); // nullifierHash is now index 1
+        bytes32 nullifierHash = bytes32(realPubSignals[0]); // nullifierHash is at index 0
         assertTrue(realDistributor.usedNullifiers(nullifierHash), "Nullifier should be marked as used");
 
         console.log("=== Real Calldata Test PASSED! ===");
@@ -507,35 +504,10 @@ contract ZKTokenDistributorTest is Test {
         // Warp to claim period
         vm.warp(claimPeriodStart + 1);
 
-        // Your REAL calldata
-        uint256[2] memory realPa = [
-            uint256(0x14f56ef6ca5a1300290192ff18cb11eb2817519b8dc6f3ad5d41657794df7e54),
-            uint256(0x020c9bce56bdbbb4a1494f57e2da98831f94d6b8609fe7a4337746fd652bf44d)
-        ];
+        // Load REAL calldata from circuits/circom/calldata.txt using FFI
+        (uint256[2] memory realPa, uint256[2][2] memory realPb, uint256[2] memory realPc, uint256[3] memory realPubSignals) = loadCalldata();
 
-        uint256[2][2] memory realPb = [
-            [
-                uint256(0x11d64c137625d352c7c8bba77e2fd19ed7b50ad24edf4e782765fbcfee2fc187),
-                uint256(0x02f44220d60b020686f82a078d661079e08c07bcff5d7a2c519659eb92fa49fc)
-            ],
-            [
-                uint256(0x1464e29961b20f8b977e19d64821206e704814b3c22c9ec4beea4e89614be07a),
-                uint256(0x1780392ce9086cd2a18fa37a81eae7609f4883b1d7c7046bd21901d14f1c4d84)
-            ]
-        ];
-
-        uint256[2] memory realPc = [
-            uint256(0x0df742e8520d01459c53be9a7b2b9b2bdb50c04f1fc6c0e8d3fec0f0abae0306),
-            uint256(0x021d5e3953c23e8534864bc3cfdb1b0ebd0fd2d56f6a987e947d3a9b5ccbe9fe)
-        ];
-
-        uint256[3] memory realPubSignals = [
-            uint256(0x0e0a8cddea1a68ea15116226f1b19e103f46a6d8f0838c51e55e8d094c1b9264),
-            uint256(0x1e813da0b36c785286749272e6c5721e8d713558e9a0bbce80785dfd56e69d0b),
-            uint256(0x65a4da25d3016c00000) // amount from calldata
-        ];
-
-        uint256 realAmount = uint256(0x65a4da25d3016c00000);
+        uint256 realAmount = realPubSignals[1]; // amountOut from public signals
 
         // First claim should succeed
         vm.prank(user1);

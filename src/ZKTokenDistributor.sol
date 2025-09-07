@@ -194,9 +194,9 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
         uint256[2] calldata _pC,
         uint256[3] calldata _pubSignals
     ) internal {
-        // Extract nullifier hash from public signals
-        bytes32 nullifierHash = bytes32(_pubSignals[1]); // nullifierHashOut is at index 1
-        uint256 providedAmount = _pubSignals[2]; // amountOut is at index 2
+        // Extract nullifier hash from public signals  
+        bytes32 nullifierHash = bytes32(_pubSignals[0]); // nullifierHashOut is at index 0
+        uint256 providedAmount = _pubSignals[1]; // amountOut is at index 1
 
         uint256 _amount = providedAmount;
 
@@ -236,10 +236,10 @@ contract ZKTokenDistributor is AccessControlEnumerable, IZKTokenDistributor {
         uint256[2] calldata _pC,
         uint256[3] calldata _pubSignals
     ) internal view {
-        // Extract nullifier hash from public signals
-        bytes32 providedMerkleRoot = bytes32(_pubSignals[0]);
-        bytes32 nullifierHash = bytes32(_pubSignals[1]);
-        uint256 providedAmount = _pubSignals[2];
+        // Extract values from public signals (circuit outputs: nullifierHashOut, amountOut, merkleRootOut)
+        bytes32 nullifierHash = bytes32(_pubSignals[0]); // nullifierHashOut is at index 0
+        uint256 providedAmount = _pubSignals[1]; // amountOut is at index 1
+        bytes32 providedMerkleRoot = bytes32(_pubSignals[2]); // merkleRootOut is at index 2
 
         if (providedMerkleRoot != root) revert InvalidMerkleRoot();
 
