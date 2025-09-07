@@ -11,7 +11,7 @@
 // Read SECRET from .env in ../../ root.
 // key: Address as BigInt (from hex without 0x).
 // nullifier: SHA-256(address + SECRET) as BigInt.
-// nullifierHash: Poseidon([key, nullifier]).
+// nullifierHash: Poseidon([Poseidon([key, nullifier]), amount]).
 // leaf: Poseidon([key, amount]).
 
 // Merkle Tree (High-Level)
@@ -52,13 +52,15 @@
 
 // Array of Circom-ready objects, each:
 // json{
-//     "leaf": "<leaf_hash>",
+//     "userAddress": "<address_as_bigint>",
 //     "amount": "<amount>",
+//     "nullifier": "<raw_nullifier>",
 //     "pathIndices": "<leaf_position>",
 //     "pathElements": ["<sibling1>", "<sibling2>", "<sibling3>", "<sibling4>", "<sibling5>"],
 //     "merkleRoot": "<root>",
-//     "nullifierHash": "<nullifier_hash>"
+//     "expectedNullifierHash": "<computed_nullifier_hash>"
 // }
+// Note: The circuit will compute leaf = Poseidon([userAddress, amount]) and nullifierHash = Poseidon([Poseidon([userAddress, nullifier]), amount]) internally and verify it matches expectedNullifierHash
 
 // Scope for Standard Merkle Tree
 
@@ -170,8 +172,8 @@ async function generateMerkleTree() {
         // Generate nullifier
         const nullifier = generateNullifier(address, SECRET);
         
-        // Generate nullifier hash
-        const nullifierHash = poseidonHash(key, nullifier);
+        // Generate nullifier hash (include amount for better security)
+        const nullifierHash = poseidonHash(poseidonHash(key, nullifier), amount);
         
         // Generate leaf hash
         const leaf = poseidonHash(key, amount);
@@ -248,12 +250,13 @@ async function generateMerkleTree() {
         
         // Format for inputs_circom_fixed.json
         const circomInput = {
-            leaf: data.leaf.toString(),
-            amount: data.amount.toString(),
+            userAddress: data.key.toString(), // User address as BigInt string
+            amount: data.amount.toString(), // Amount as BigInt string
+            nullifier: data.nullifier.toString(), // Raw nullifier for circuit to verify
             pathIndices: leafPosition.toString(), // Use integer position
             pathElements: proof.pathElements.map(pe => pe.toString()),
             merkleRoot: root.toString(),
-            nullifierHash: data.nullifierHash.toString()
+            expectedNullifierHash: data.nullifierHash.toString() // Expected nullifierHash for verification
         };
         
         circomInputs.push(circomInput);

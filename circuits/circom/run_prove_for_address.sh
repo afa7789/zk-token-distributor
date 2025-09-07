@@ -114,4 +114,10 @@ if [ $VERIFY_EXIT -ne 0 ]; then
 fi
 
 echo "Proof verified successfully."
+
+# Export Solidity calldata
+echo "Exporting Solidity calldata..."
+snarkjs zkey export soliditycalldata "$PUBLIC" "$PROOF" > "$SCRIPT_DIR/output/calldata.txt"
+echo "Calldata exported to $SCRIPT_DIR/output/calldata.txt"
+
 exit 0

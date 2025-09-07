@@ -53,22 +53,40 @@ template RawMerkleTree(levels) {
 }
 
 template MerkleTreeInclusion(levels) {
-    signal input leaf;
+    // Private inputs that the circuit will verify (default is private)
+    signal input userAddress;
+    signal input amount;
+    signal input nullifier;
     signal input pathElements[levels];
     signal input pathIndices;
+    signal input expectedNullifierHash; // Expected nullifierHash for verification
 
-    // Inputs Públicos para inclusão na prova
     signal input merkleRoot;
-    signal input nullifierHash;
-    signal input amount;
 
-    // Saídas Públicas
-    signal output rootOut;
-    signal output merkleRootOut;
+    // Public outputs  
     signal output nullifierHashOut;
     signal output amountOut;
+    signal output merkleRootOut;
 
-    // Componentes e lógica para a verificação Merkle
+    // Compute leaf = Poseidon([userAddress, amount])
+    component leafHasher = Poseidon(2);
+    leafHasher.inputs[0] <== userAddress;
+    leafHasher.inputs[1] <== amount;
+    signal leaf;
+    leaf <== leafHasher.out;
+
+    // Compute nullifierHash = Poseidon([Poseidon([userAddress, nullifier]), amount])
+    component nullifierBaseHasher = Poseidon(2);
+    nullifierBaseHasher.inputs[0] <== userAddress;
+    nullifierBaseHasher.inputs[1] <== nullifier;
+    
+    component nullifierFinalHasher = Poseidon(2);
+    nullifierFinalHasher.inputs[0] <== nullifierBaseHasher.out;
+    nullifierFinalHasher.inputs[1] <== amount;
+    signal nullifierHash;
+    nullifierHash <== nullifierFinalHasher.out;
+
+    // Merkle tree verification
     component indexBits = Num2Bits(levels);
     indexBits.in <== pathIndices;
 
@@ -79,13 +97,13 @@ template MerkleTreeInclusion(levels) {
         tree.pathElements[i] <== pathElements[i];
     }
 
-    // Saída da raiz calculada
-    rootOut <== tree.root;
+    // Verify the computed root matches the expected root
+    tree.root === merkleRoot;
 
-    // Restrição para garantir que a raiz calculada é a mesma que a entrada pública
-    rootOut === merkleRoot;
+    // Verify the computed nullifierHash matches the expected one
+    nullifierHash === expectedNullifierHash;
 
-    // Vinculando inputs públicos a outputs para forçar a inclusão na prova
+    // Output the verified values (these become public outputs)
     merkleRootOut <== merkleRoot;
     nullifierHashOut <== nullifierHash;
     amountOut <== amount;
