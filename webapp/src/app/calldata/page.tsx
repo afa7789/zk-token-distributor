@@ -19,7 +19,8 @@ interface BackendData {
   userAddress: string;
   amount: string;
   nullifier: string;
-  siblings: string[];
+  pathElements: string[];
+  pathIndices: string;
   amountInTokens: string;
 }
 
@@ -73,14 +74,15 @@ export default function CalldataPage() {
     setError(null);
 
     try {
-      // Prepare inputs for circom using backend data (matches input.json structure)
+      // Prepare inputs for circom using backend data (matches the new circuit interface)
       const circuitInputs = {
-        merkleRoot: backendData.merkleRoot,
-        nullifierHash: backendData.nullifierHash,
         userAddress: backendData.userAddress,
         amount: backendData.amount,
         nullifier: backendData.nullifier,
-        siblings: backendData.siblings.filter((s: string) => s.trim() !== '')
+        pathElements: backendData.pathElements,
+        pathIndices: backendData.pathIndices,
+        expectedNullifierHash: backendData.nullifierHash,
+        merkleRoot: backendData.merkleRoot
       };
 
       console.log('Generating proof with backend data:', circuitInputs);
@@ -386,12 +388,12 @@ export default function CalldataPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Merkle Proof ({backendData.siblings.length} siblings)
+                    Merkle Proof ({backendData.pathElements.length} path elements)
                   </label>
                   <div className="bg-white p-3 rounded border max-h-32 overflow-y-auto">
-                    {backendData.siblings.map((sibling: string, index: number) => (
+                    {backendData.pathElements.map((pathElement: string, index: number) => (
                       <div key={index} className="text-sm font-mono text-gray-600 py-1">
-                        [{index}] {sibling}
+                        [{index}] {pathElement}
                       </div>
                     ))}
                   </div>

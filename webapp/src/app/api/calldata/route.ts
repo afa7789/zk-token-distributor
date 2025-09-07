@@ -165,40 +165,65 @@ export async function POST(request: NextRequest) {
 
 async function addressExistsInSmt(smtPath: string, address: string | null | undefined): Promise<boolean> {
   if (!address) return false;
-  const addr = address.toLowerCase();
+  
+  // Convert address to BigInt format for comparison
+  const addressToBigInt = (addr: string): string => {
+    if (!addr.startsWith('0x')) {
+      return addr;
+    }
+    const hexAddress = addr.slice(2);
+    return BigInt('0x' + hexAddress).toString();
+  };
+  
+  const addrLower = address.toLowerCase();
+  const addrBigInt = addressToBigInt(address);
+  
   const raw = await fs.readFile(smtPath, 'utf8');
   const json = JSON.parse(raw);
+
+  // Check if it's the new format with inputs_circom_fixed.json structure (array of user objects)
+  if (Array.isArray(json)) {
+    return json.some((item: unknown) => {
+      if (!item || typeof item !== 'object') return false;
+      const obj = item as Record<string, unknown>;
+      
+      // Check userAddress field (BigInt format)
+      if (obj.userAddress === addrBigInt) return true;
+      
+      // Fallback checks for other possible formats
+      if (obj.key && typeof obj.key === 'string' && obj.key.toLowerCase() === addrLower) return true;
+      if (obj.address && typeof obj.address === 'string' && obj.address.toLowerCase() === addrLower) return true;
+      
+      return false;
+    });
+  }
+
+  // Check if it's the SMT results format with leaves array
+  if (json && typeof json === 'object' && 'leaves' in json && Array.isArray((json as { leaves: unknown[] }).leaves)) {
+    const smtResults = json as { leaves: unknown[] };
+    return smtResults.leaves.some((leaf: unknown) => {
+      if (!leaf || typeof leaf !== 'object') return false;
+      const leafObj = leaf as Record<string, unknown>;
+      
+      // Check key field (original address format)
+      if (leafObj.key && typeof leafObj.key === 'string' && leafObj.key.toLowerCase() === addrLower) return true;
+      
+      // Check keyUint field (BigInt format)
+      if (leafObj.keyUint === addrBigInt) return true;
+      
+      return false;
+    });
+  }
 
   // If it's an object keyed by address
   if (json && typeof json === 'object' && !Array.isArray(json)) {
     // direct keys may be 0x... or lowercased
     for (const k of Object.keys(json)) {
-      if (k.toLowerCase() === addr) return true;
+      if (k.toLowerCase() === addrLower) return true;
     }
   }
 
-  // If it's an array, find by common shapes
-  if (Array.isArray(json)) {
-    return json.some((item: unknown) => {
-      if (!item) return false;
-      if (typeof item === 'string') return item.toLowerCase() === addr;
-      if (typeof item === 'object') {
-        const obj = item as Record<string, unknown>;
-        const keyVal = obj['key'];
-        if (keyVal !== undefined && (typeof keyVal === 'string' || typeof keyVal === 'number')) {
-          if (String(keyVal).toLowerCase() === addr) return true;
-        }
-        const addressVal = obj['address'];
-        if (addressVal !== undefined && (typeof addressVal === 'string' || typeof addressVal === 'number')) {
-          if (String(addressVal).toLowerCase() === addr) return true;
-        }
-        // fallback: stringify
-        return JSON.stringify(item).toLowerCase().includes(addr);
-      }
-      return false;
-    });
-  }
-
   // Fallback: full-text search
-  return JSON.stringify(json).toLowerCase().includes(addr);
+  return JSON.stringify(json).toLowerCase().includes(addrLower) || 
+         JSON.stringify(json).includes(addrBigInt);
 }

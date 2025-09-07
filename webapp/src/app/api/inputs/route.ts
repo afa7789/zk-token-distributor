@@ -5,16 +5,20 @@ import { cookies } from 'next/headers';
 
 interface UserData {
   merkleRoot: string;
-  nullifierHash: string;
+  expectedNullifierHash: string;
   userAddress: string;
   amount: string;
   nullifier: string;
-  siblings: string[];
-  amountInTokens?: string; // Added for compatibility
+  pathElements: string[];
+  pathIndices: string;
+  amountInTokens?: string;
 }
 
 // Convert Ethereum address to the format used in inputs_circom.json
 function addressToDecimal(address: string): string {
+  if (!address.startsWith('0x')) {
+    return address;
+  }
   const hexAddress = address.slice(2);
   return BigInt('0x' + hexAddress).toString();
 }
@@ -79,11 +83,12 @@ export async function GET(request: NextRequest) {
 
     const formattedUserData = {
       merkleRoot: formatFieldElement(userData.merkleRoot),
-      nullifierHash: formatFieldElement(userData.nullifierHash),
+      nullifierHash: formatFieldElement(userData.expectedNullifierHash),
       userAddress: formatFieldElement(userData.userAddress),
       amount: formatFieldElement(userData.amount),
       nullifier: formatFieldElement(userData.nullifier),
-      siblings: userData.siblings.map(s => formatFieldElement(s)),
+      pathElements: userData.pathElements.map(s => formatFieldElement(s)),
+      pathIndices: formatFieldElement(userData.pathIndices),
       amountInTokens: formatTokenAmount(userData.amount)
     };
 

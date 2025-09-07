@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAccount, useDisconnect } from 'wagmi';
 import { ConnectKitButton } from 'connectkit';
 import { useClaimTokens } from '@/hooks/useClaimTokens';
@@ -12,7 +13,7 @@ interface ParsedCalldata {
     b: [[string, string], [string, string]];
     c: [string, string];
   };
-  publicSignals: [string, string, string]; // Updated: now 3 public signals [merkleRoot, nullifierHash, amount]
+  publicSignals: [string, string, string]; // Updated: [merkleRoot, nullifierHash, amount]
   amount?: string; // Amount from calldata (for backward compatibility)
 }
 
@@ -351,7 +352,7 @@ export default function ClaimPanel() {
 
         {/* Helper Text */}
         <p className="text-sm text-gray-600 text-center">
-          💡 Need calldata? Generate it on the <a href="/calldata" className="text-blue-600 hover:text-blue-800 underline">Calldata page</a>
+          💡 Need calldata? Generate it on the <Link href="/" className="text-blue-600 hover:text-blue-800 underline">Home page</Link>
           {(() => {
             const amount = parsedCalldata?.amount || parsedCalldata?.publicSignals[2];
             if (parsedCalldata && (!amount || amount === "0")) {

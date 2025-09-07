@@ -5,24 +5,23 @@ interface SMTLeaf {
   key: string;
   keyUint: string;
   value: string;
-  leafHash: string;
+  leaf: string;
   nullifier: string;
   nullifierHash: string;
-  siblings: string[];
+  pathElements: string[];
+  pathIndices: string;
 }
 
 interface SMTResults {
-  smtRoot: string;
+  root: string;
   treeLevels: number;
   hashFunction: string;
-  treeType: string;
   totalAmount: string;
   leaves: SMTLeaf[];
 }
 
 /**
  * UserCalldata interface matching exactly what the circuit needs for proof generation.
- * Updated for the new circuit with 3 outputs: merkleRootOut, nullifierHashOut, amountOut
  */
 interface UserCalldata {
   // Circuit inputs (matching input.json structure)
@@ -31,7 +30,8 @@ interface UserCalldata {
   userAddress: string;
   amount: string;
   nullifier: string;
-  siblings: string[];
+  pathElements: string[];
+  pathIndices: string;
   // Additional metadata for UI display
   amountInTokens: string;
 }
@@ -100,7 +100,7 @@ export class CalldataGenerator {
       totalUsers: validUsers.length,
       totalAmount: this.smtResults.totalAmount,
       totalAmountInTokens: (BigInt(this.smtResults.totalAmount) / BigInt(10 ** 18)).toString(),
-      smtRoot: this.smtResults.smtRoot,
+      smtRoot: this.smtResults.root,
       treeLevels: this.smtResults.treeLevels,
       users: validUsers.map(user => ({
         address: user.userAddress,
@@ -145,12 +145,13 @@ export class CalldataGenerator {
     }
 
     return {
-      merkleRoot: this.formatFieldElement(this.smtResults.smtRoot),
+      merkleRoot: this.formatFieldElement(this.smtResults.root),
       nullifierHash: this.formatFieldElement(leaf.nullifierHash),
       userAddress: this.formatFieldElement(leaf.keyUint),
       amount: this.formatFieldElement(leaf.value),
       nullifier: this.formatFieldElement(leaf.nullifier),
-      siblings: leaf.siblings.map(s => this.formatFieldElement(s)),
+      pathElements: leaf.pathElements.map(s => this.formatFieldElement(s)),
+      pathIndices: this.formatFieldElement(leaf.pathIndices),
       amountInTokens: this.formatTokenAmount(leaf.value)
     };
   }
@@ -169,19 +170,25 @@ export class CalldataGenerator {
         return null;
       }
 
-      const formatFieldElement = (value: string): string => BigInt(value).toString();
+      const formatFieldElement = (value: string | undefined): string => {
+        if (value === undefined) {
+          throw new Error('Cannot convert undefined to BigInt');
+        }
+        return BigInt(value).toString()
+      };
       const formatTokenAmount = (amountWei: string): string => {
         const tokens = BigInt(amountWei) / BigInt(10 ** 18);
         return tokens.toString();
       };
 
       return {
-        merkleRoot: formatFieldElement(smtResults.smtRoot),
+        merkleRoot: formatFieldElement(smtResults.root),
         nullifierHash: formatFieldElement(userLeaf.nullifierHash),
         userAddress: formatFieldElement(userLeaf.keyUint),
         amount: formatFieldElement(userLeaf.value),
         nullifier: formatFieldElement(userLeaf.nullifier),
-        siblings: userLeaf.siblings.map(s => formatFieldElement(s)),
+        pathElements: userLeaf.pathElements.map(s => formatFieldElement(s)),
+        pathIndices: formatFieldElement(userLeaf.pathIndices),
         amountInTokens: formatTokenAmount(userLeaf.value)
       };
     } catch (error) {

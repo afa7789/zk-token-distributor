@@ -6,7 +6,8 @@ export interface ZKProofInputs {
   userAddress: string;
   amount: string;
   nullifier: string;
-  siblings: string[];
+  pathElements: string[];
+  pathIndices: string;
 }
 
 export interface ZKProof {
@@ -44,7 +45,8 @@ export class ZKProofGenerator {
         nullifierHash: inputs.nullifierHash,
         amount: inputs.amount,
         userAddress: inputs.userAddress,
-        siblingsCount: inputs.siblings.length
+        pathElementsCount: inputs.pathElements.length,
+        pathIndices: inputs.pathIndices
       });
 
       // Prepare circuit inputs in the format expected by the new circom circuit
@@ -54,7 +56,8 @@ export class ZKProofGenerator {
         userAddress: formatFieldElement(inputs.userAddress),
         amount: formatFieldElement(inputs.amount),
         nullifier: formatFieldElement(inputs.nullifier),
-        siblings: inputs.siblings.map(formatFieldElement),
+        pathElements: inputs.pathElements.map(formatFieldElement),
+        pathIndices: formatFieldElement(inputs.pathIndices),
       };
 
       console.log('🔧 Formatted circuit inputs:', circuitInputs);
@@ -130,7 +133,8 @@ export class ZKProofGenerator {
       userAddress: userData.userAddress,
       amount: userData.amount,
       nullifier: userData.nullifier,
-      siblings: userData.siblings
+      pathElements: userData.pathElements,
+      pathIndices: userData.pathIndices
     };
   }
 }

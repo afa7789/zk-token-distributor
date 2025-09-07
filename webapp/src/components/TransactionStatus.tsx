@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import type { TransactionState } from '@/hooks/useClaimTokens';
 
 interface TransactionStatusProps {
@@ -71,6 +72,16 @@ export default function TransactionStatus({ transactionState, onClose }: Transac
               <p className="text-green-700 text-sm">
                 Your claim has been successfully processed.
               </p>
+              
+              {/* Dashboard Link */}
+              <div className="mt-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
+                >
+                  📊 Go to Dashboard →
+                </Link>
+              </div>
               
               {/* Receipt Details */}
               <details className="mt-2">
