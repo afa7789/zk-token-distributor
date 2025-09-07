@@ -31,8 +31,8 @@ export class ZKProofGenerator {
   private verificationKeyUrl: string;
 
   constructor() {
-    this.wasmUrl = '/circom/airdrop_smt.wasm';
-    this.zkeyUrl = '/circom/airdrop_smt_01.zkey';
+    this.wasmUrl = '/circom/merkle_tree.wasm';
+    this.zkeyUrl = '/circom/merkle_tree_01.zkey';
     this.verificationKeyUrl = '/circom/verification_key.json';
   }
 

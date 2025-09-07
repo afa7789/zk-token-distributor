@@ -88,8 +88,8 @@ export default function CalldataPage() {
       // Generate the proof using snarkjs
       const { proof, publicSignals } = await snarkjs.groth16.fullProve(
         circuitInputs,
-        '/circom/airdrop_smt.wasm',
-        '/circom/airdrop_smt_01.zkey'
+        '/circom/merkle_tree.wasm',
+        '/circom/merkle_tree_01.zkey'
       );
 
       console.log('Proof generated:', { proof, publicSignals });
