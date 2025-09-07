@@ -14,39 +14,43 @@ contract VerifierZKTest is Test {
         verifier = new VerifierZK();
     }
 
-    function loadCalldata() internal view returns (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) {
+    function loadCalldata()
+        internal
+        view
+        returns (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals)
+    {
         // Try to load structured calldata.json first, fallback to calldata.txt
         try vm.readFile("circuits/circom/output/calldata.json") returns (string memory json) {
             // Use structured format
             pA[0] = vm.parseJsonUint(json, ".pA[0]");
             pA[1] = vm.parseJsonUint(json, ".pA[1]");
-            
+
             pB[0][0] = vm.parseJsonUint(json, ".pB[0][0]");
             pB[0][1] = vm.parseJsonUint(json, ".pB[0][1]");
             pB[1][0] = vm.parseJsonUint(json, ".pB[1][0]");
             pB[1][1] = vm.parseJsonUint(json, ".pB[1][1]");
-            
+
             pC[0] = vm.parseJsonUint(json, ".pC[0]");
             pC[1] = vm.parseJsonUint(json, ".pC[1]");
-            
+
             pubSignals[0] = vm.parseJsonUint(json, ".pubSignals[0]");
             pubSignals[1] = vm.parseJsonUint(json, ".pubSignals[1]");
             pubSignals[2] = vm.parseJsonUint(json, ".pubSignals[2]");
         } catch {
             // Fallback to array format in calldata.txt
             string memory json = vm.readFile("circuits/circom/output/calldata.txt");
-            
+
             pA[0] = vm.parseJsonUint(json, "$[0][0]");
             pA[1] = vm.parseJsonUint(json, "$[0][1]");
-            
+
             pB[0][0] = vm.parseJsonUint(json, "$[1][0][0]");
             pB[0][1] = vm.parseJsonUint(json, "$[1][0][1]");
             pB[1][0] = vm.parseJsonUint(json, "$[1][1][0]");
             pB[1][1] = vm.parseJsonUint(json, "$[1][1][1]");
-            
+
             pC[0] = vm.parseJsonUint(json, "$[2][0]");
             pC[1] = vm.parseJsonUint(json, "$[2][1]");
-            
+
             pubSignals[0] = vm.parseJsonUint(json, "$[3][0]");
             pubSignals[1] = vm.parseJsonUint(json, "$[3][1]");
             pubSignals[2] = vm.parseJsonUint(json, "$[3][2]");
@@ -55,7 +59,8 @@ contract VerifierZKTest is Test {
 
     function testValidProof() public {
         // Load proof data directly from calldata.txt
-        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) = loadCalldata();
+        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) =
+            loadCalldata();
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
 
@@ -136,7 +141,8 @@ contract VerifierZKTest is Test {
 
     function testGasUsage() public {
         // Test gas consumption for proof verification using real calldata
-        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) = loadCalldata();
+        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) =
+            loadCalldata();
 
         uint256 gasBefore = gasleft();
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
@@ -195,7 +201,7 @@ contract VerifierZKTest is Test {
         uint256[2] memory pA = [uint256(0), uint256(0)];
         uint256[2][2] memory pB = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
         uint256[2] memory pC = [uint256(0), uint256(0)];
-        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0), uint256(100 * 10**18)];
+        uint256[3] memory pubSignals = [uint256(0x1e), uint256(0), uint256(100 * 10 ** 18)];
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
 
@@ -210,7 +216,8 @@ contract VerifierZKTest is Test {
         console.log(calldataStr);
 
         // Load proof data directly from calldata.txt
-        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) = loadCalldata();
+        (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) =
+            loadCalldata();
 
         bool result = verifier.verifyProof(pA, pB, pC, pubSignals);
         console.log("Your calldata verification result:", result);

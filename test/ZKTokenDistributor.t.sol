@@ -36,7 +36,8 @@ contract ZKTokenDistributorTest is Test {
     address public user3;
 
     // Set to the real merkle root from your calldata.txt so real-proof tests pass
-    bytes32 public constant ROOT = bytes32(uint256(7054385145717911653721609161544638637633539625963676117015460245407631267339));
+    bytes32 public constant ROOT =
+        bytes32(uint256(7054385145717911653721609161544638637633539625963676117015460245407631267339));
     // Use the real total claimable to cover the amount present in your calldata
     uint256 public constant TOTAL_CLAIMABLE = 540000000000000000000000; // Total from generator (540,000 tokens)
     uint256 public claimPeriodStart;
@@ -78,23 +79,27 @@ contract ZKTokenDistributorTest is Test {
         token.mint(address(distributor), TOTAL_CLAIMABLE);
     }
 
-    function loadCalldata() internal view returns (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals) {
+    function loadCalldata()
+        internal
+        view
+        returns (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, uint256[3] memory pubSignals)
+    {
         string memory json = vm.readFile("circuits/circom/output/calldata.txt");
-        
+
         // Parse pA
         pA[0] = vm.parseJsonUint(json, "$[0][0]");
         pA[1] = vm.parseJsonUint(json, "$[0][1]");
-        
+
         // Parse pB
         pB[0][0] = vm.parseJsonUint(json, "$[1][0][0]");
         pB[0][1] = vm.parseJsonUint(json, "$[1][0][1]");
         pB[1][0] = vm.parseJsonUint(json, "$[1][1][0]");
         pB[1][1] = vm.parseJsonUint(json, "$[1][1][1]");
-        
+
         // Parse pC
         pC[0] = vm.parseJsonUint(json, "$[2][0]");
         pC[1] = vm.parseJsonUint(json, "$[2][1]");
-        
+
         // Parse pubSignals
         pubSignals[0] = vm.parseJsonUint(json, "$[3][0]");
         pubSignals[1] = vm.parseJsonUint(json, "$[3][1]");
@@ -451,7 +456,12 @@ contract ZKTokenDistributorTest is Test {
         vm.warp(claimPeriodStart + 1);
 
         // Load REAL calldata from circuits/circom/calldata.txt using FFI
-        (uint256[2] memory realPa, uint256[2][2] memory realPb, uint256[2] memory realPc, uint256[3] memory realPubSignals) = loadCalldata();
+        (
+            uint256[2] memory realPa,
+            uint256[2][2] memory realPb,
+            uint256[2] memory realPc,
+            uint256[3] memory realPubSignals
+        ) = loadCalldata();
 
         uint256 realAmount = realPubSignals[1]; // amountOut from public signals
 
@@ -505,7 +515,12 @@ contract ZKTokenDistributorTest is Test {
         vm.warp(claimPeriodStart + 1);
 
         // Load REAL calldata from circuits/circom/calldata.txt using FFI
-        (uint256[2] memory realPa, uint256[2][2] memory realPb, uint256[2] memory realPc, uint256[3] memory realPubSignals) = loadCalldata();
+        (
+            uint256[2] memory realPa,
+            uint256[2][2] memory realPb,
+            uint256[2] memory realPc,
+            uint256[3] memory realPubSignals
+        ) = loadCalldata();
 
         uint256 realAmount = realPubSignals[1]; // amountOut from public signals
 

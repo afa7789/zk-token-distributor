@@ -31,3 +31,9 @@ jobs:
 
       - name: Run Forge tests
         run: forge test -vvv
+
+      - name: Run Circom tests
+        working-directory: circuits/circom
+        run: |
+          npm ci
+          npm test

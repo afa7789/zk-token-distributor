@@ -40,11 +40,11 @@ contract Deployer is Script {
         // Convert SMT root from uint256 to bytes32
         bytes32 merkleRoot = bytes32(smtRootUint);
 
-    console.log("SMT Root (uint256):", smtRootUint);
-    console.log("SMT Root (bytes32):", vm.toString(merkleRoot));
-    console.log("Total Claimable Amount:", totalAmount);
-    // Log the current block timestamp to help debug InvalidTimestamp errors
-    console.log("Current block.timestamp:", block.timestamp);
+        console.log("SMT Root (uint256):", smtRootUint);
+        console.log("SMT Root (bytes32):", vm.toString(merkleRoot));
+        console.log("Total Claimable Amount:", totalAmount);
+        // Log the current block timestamp to help debug InvalidTimestamp errors
+        console.log("Current block.timestamp:", block.timestamp);
 
         // Deploy Verifier first
         VerifierZK verifier = new VerifierZK();
