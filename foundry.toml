@@ -6,8 +6,7 @@ libs = ["lib"]
 # Remappings for usage in script/others
 remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",
-    "forge-std/=lib/forge-std/src/",
-    "poseidon-solidity/=lib/poseidon-solidity/contracts"
+    "forge-std/=lib/forge-std/src/"
 ]
 
 # Enable filesystem access for reading/writing files
