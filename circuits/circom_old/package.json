@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "circomlib": "^2.0.5",
-    "circomlibjs": "^0.1.7"
-  },
-  "name": "circom",
-  "version": "1.0.0",
-  "license": "ISC"
-}
