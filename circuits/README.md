@@ -1,4 +1,9 @@
-The main objective of the circuits is beeing able to compare each to each.
+This directory contains the circuits for the ZK Token Distributor.
 
-After all this project is being used as an opportunity to learn how to use zero knowledge in projects.
+The main circuit is in `circom/merkle_tree.circom`.
+The script to generate the inputs for the circuit is in `circom/merkle_tree_generator.js`.
+
+The `circom_old` directory contains old versions of the circuits and scripts, and can be ignored.
+
+Please check the `README.md` in the `circom` directory for more information on how to compile the circuit and generate proofs.
 
