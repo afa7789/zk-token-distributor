@@ -2,6 +2,18 @@
 
 This repository contains a token airdrop flow protected by a Sparse Merkle Tree + Circom proofs. The steps below are a compact, practical guide to prepare proofs, build/deploy contracts, and run the web app locally.
 
+## 📸 Visual Documentation
+
+For a complete visual walkthrough of the application, see the [Visual Documentation](./resources/README.md) which includes screenshots of:
+
+- Authentication flow with Sign-In with Ethereum (SIWE)
+- Zero-knowledge proof generation
+- Token claiming interface
+- Transaction status and confirmations
+- User dashboard and token balance
+
+![Application Overview](./resources/screenshots/home_page_siwe.png)
+
 ## Prerequisites
 
 - Foundry (forge/anvil) installed and in PATH
@@ -99,3 +111,43 @@ If you rely on the provided Foundry scripts for Merkle/proof generation, Foundry
 3. Configure the UI
 
     - Point the app to the deployed contract addresses / network in the app config (check `webapp/src/lib` or the environment variables the app expects).
+
+## 🎯 Application Features
+
+### Zero-Knowledge Proof Generation
+![Proof Generation](./resources/screenshots/proof_to_claim_generated.png)
+
+The application generates privacy-preserving zero-knowledge proofs to verify token eligibility without revealing sensitive information.
+
+### Secure Token Claiming
+![Claim Submission](./resources/screenshots/submitting_claim.png)
+
+Users can claim their airdrop tokens using the generated calldata with full transaction transparency.
+
+### Real-time Dashboard
+![Dashboard](./resources/screenshots/dashboard_after_claim.png)
+
+Track token balances and claim status through an intuitive dashboard interface.
+
+### Error Handling & Security
+![Claim Error](./resources/screenshots/second_claim_fail.png)
+
+Comprehensive error handling prevents double-spending and provides clear user feedback.
+
+## 📁 Project Structure
+
+```
+├── circuits/           # Zero-knowledge circuit definitions
+├── src/               # Smart contracts (Solidity)
+├── script/            # Deployment scripts
+├── webapp/            # Next.js frontend application
+├── data/              # CSV data for airdrop recipients
+├── resources/         # Screenshots and documentation
+└── test/              # Contract tests
+```
+
+## 🔗 Links
+
+- [Visual Documentation](./resources/README.md) - Complete screenshot walkthrough
+- [Circuit Documentation](./circuits/README.md) - ZK circuit details
+- [Smart Contract Documentation](./src/) - Solidity contracts
