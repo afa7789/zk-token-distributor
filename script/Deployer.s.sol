@@ -22,7 +22,7 @@ contract Deployer is Script {
         string memory filePath = "out/smt_results_fixed.json";
         try vm.readFile(filePath) returns (string memory json) {
             // Extract SMT root and total amount from file
-            smtRootUint = json.readUint(".smtRoot");
+            smtRootUint = json.readUint(".root");
             totalAmount = json.readUint(".totalAmount");
             console.log("Successfully read SMT data from:", filePath);
             fileRead = true;
